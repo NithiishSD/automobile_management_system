@@ -6,8 +6,13 @@ drop table servicetype;
 drop table people;
 drop table phone_records;
 create table users(
-    username varchar(30) unique not null,
-    password varchar(20) not null
+    id int primary key,
+    username varchar(100) unique not null,
+    password varchar(200) not null,
+    email varchar(100) unique not null,
+    role varchar(10) not null,
+    createddate date,
+    updateddate date
 );
 create table people(
     pid int primary key,
