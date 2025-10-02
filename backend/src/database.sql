@@ -5,6 +5,10 @@ show tables;
 drop table servicetype;
 drop table people;
 drop table phone_records;
+create table users(
+    username varchar(30) unique not null,
+    password varchar(20) not null
+);
 create table people(
     pid int primary key,
     firstname varchar(20) not null,
