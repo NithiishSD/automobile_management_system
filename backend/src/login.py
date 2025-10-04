@@ -27,6 +27,6 @@ def login_user():
     
 def profile():
     current_user_id = get_jwt_identity()
-    cur.excecute("select id,username from users where id={%s}",current_user_id)
+    cur.execute("select id,username from users where id={%s}",current_user_id)
     user=cur.fetchone()
     return jsonify({"id": user[0], "username": user[1]})
