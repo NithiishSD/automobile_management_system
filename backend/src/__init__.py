@@ -11,5 +11,7 @@ cur.execute('use automobile')
 
 
 from .login import loginbp
+from .vehicles import vehiclebp
 
 app.register_blueprint(loginbp)
+app.register_blueprint(vehiclebp)

@@ -27,5 +27,6 @@ def get_details():
         return jsonify(details)
     else:
         return jsonify({"message":"they is not record of the given vehicle id"}),404
-    
+
+  
     
