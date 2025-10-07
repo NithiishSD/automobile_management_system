@@ -60,4 +60,19 @@ create table resaleowner(
     primary key(ownerid, pid),
     foreign key(pid) references people(pid)
 );
+create table servicerecord (
+    recordid int,
+    servicebookid int,
+    workdone bool default false,
+    servicecost int,
+    completiondate date,
+    primary key(recordid, servicebookid),
+    foreign key(servicebookid) references servicebooking(sid)
+);
+create table parts_changed_record (
+    recordid int,
+    partsname varchar(50),
+    qty int default 1,
+    foreign key(recordid) references servicerecord(recordid)
+);
 commit;
