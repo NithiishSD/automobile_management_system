@@ -9,9 +9,10 @@ if db.is_connected:
 cur=db.cursor()
 cur.execute('use automobile')
 
-
 from .login import loginbp
 from .vehicles import vehiclebp
+from .signup import signupbp
 
+app.register_blueprint(signupbp)
 app.register_blueprint(loginbp)
 app.register_blueprint(vehiclebp)
