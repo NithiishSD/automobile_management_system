@@ -94,9 +94,11 @@ CREATE TABLE COLORCHOICE (
 
 CREATE TABLE RESALEVEHICLE (
     VehicleId VARCHAR(50) NOT NULL,
+    OwnerId INT NOT NULL,
     Condition VARCHAR(50),
     PRIMARY KEY (VehicleId),
-    CONSTRAINT fk_resalevehicle_vehicle FOREIGN KEY (VehicleId) REFERENCES VEHICLE(VehicleId)
+    CONSTRAINT fk_resalevehicle_vehicle FOREIGN KEY (VehicleId) REFERENCES VEHICLE(VehicleId),
+    CONSTRAINT fk_resalevehicle_owner FOREIGN KEY (OwnerId) REFERENCES RESALEOWNER(OwnerId)
 );
 
 CREATE TABLE VEHICLEHISTORY (
