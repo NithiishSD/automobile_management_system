@@ -166,6 +166,14 @@ create table sales(
     vehicleid VARCHAR(50),
     foreign key(vehicleid) references VEHICLE(VehicleId)
 );
+create table orderbooking(
+    bookid int primary key,
+    status varchar(20),
+    customerid int,
+    booking date,
+    expirydate date,
+    foreign key(customerid) references customer(customerid)
+);
 create table advance_payment(
     ad_paymentid int primary key,
     amount float not null,
