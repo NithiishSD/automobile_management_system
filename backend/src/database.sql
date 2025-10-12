@@ -168,7 +168,7 @@ create table sales(
 );
 create table orderbooking(
     bookid int primary key,
-    status varchar(20),
+    status varchar(20) default 'pending',
     customerid int,
     booking date,
     expirydate date,
