@@ -5,6 +5,7 @@ show tables;
 drop table servicetype;
 drop table people;
 drop table phone_records;
+drop table users;
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(100) UNIQUE NOT NULL,
@@ -14,7 +15,6 @@ CREATE TABLE users (
     createddate DATETIME DEFAULT CURRENT_TIMESTAMP,
     updateddate DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
-drop table users;
 create table people(
     pid int primary key,
     firstname varchar(20) not null,
@@ -38,7 +38,12 @@ create table customer (
     primary key(customerid, pid),
     foreign key(pid) references people(pid)
 );
-create table servicetype(serviceid int primary key);
+create table servicetype(
+    serviceid int primary key,
+    service_name varchar(20),
+    basecost int default 2000,
+    description varchar(100),
+);
 create table servicebooking(
     sid int primary key,
     appointmentdate date,
@@ -76,8 +81,6 @@ create table parts_changed_record (
     qty int default 1,
     foreign key(recordid) references servicerecord(recordid)
 );
-ALTER TABLE users
-MODIFY id INT AUTO_INCREMENT PRIMARY KEY;
 CREATE TABLE VEHICLE (
     VehicleId VARCHAR(50) NOT NULL,
     Vin VARCHAR(17) NOT NULL,
@@ -155,5 +158,27 @@ CREATE TABLE MANUFACTURER (
     PhoneNo VARCHAR(20),
     PRIMARY KEY (ManufacturerId),
     CONSTRAINT fk_manufacturer_newvehicle FOREIGN KEY (VehicleId) REFERENCES NEWVEHICLE(VehicleId)
+);
+create table sales(
+    salesid int primary key,
+    salesdate date not null,
+    finalprice float not null,
+    vehicleid VARCHAR(50),
+    foreign key(vehicleid) references VEHICLE(VehicleId)
+);
+create table advance_payment(
+    ad_paymentid int primary key,
+    amount float not null,
+    bookingid int,
+    advancedate date,
+    foreign key(bookingid) references servicebooking(sid)
+);
+create table payment(
+    payid int primary key,
+    amount float not null,
+    paymentmode varchar(50),
+    saleid int,
+    status varchar(20) not null,
+    paymentdate date
 );
 commit;
