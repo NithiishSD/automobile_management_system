@@ -27,7 +27,7 @@ def login_user():
 def profile():
     if request.methods=='GET':
         current_user_id = get_jwt_identity()
-        cur=db.execute()
+        cur=db.cursor()
         cur.excecute("select id,username from users where id={%s}",current_user_id)
         user=cur.fetchone()
         if user:
