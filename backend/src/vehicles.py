@@ -2,7 +2,8 @@ from flask import Blueprint,request,jsonify
 from src import db
 vehiclebp=Blueprint("vehicles","__name__")
 cur=db.cursor()
-@vehiclebp.route("/api/vehicles",methods=["GET"])
+@vehiclebp.route("/api/vehicles/<int:id>",methods=["GET"])
+
 def get_vehicles():
     vehicletype=request.args.get("vehicle")
     
