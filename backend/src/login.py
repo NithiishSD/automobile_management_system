@@ -4,7 +4,7 @@ from src import db
 
 loginbp=Blueprint('login',__name__)
 
-@loginbp.route('/login',methods=["POST","GET"])
+@loginbp.route('/auth/login',methods=["POST"])
 def login_user():
     userdetails=request.get_json()
     user=userdetails.get("user")
@@ -22,11 +22,16 @@ def login_user():
     
     
     
-@loginbp.route('/api/profile', methods=['GET'])
+@loginbp.route('/auth/profile', methods=['GET','PATCH',])
 @jwt_required()
-    
 def profile():
-    current_user_id = get_jwt_identity()
-    cur.execute("select id,username from users where id={%s}",current_user_id)
-    user=cur.fetchone()
-    return jsonify({"id": user[0], "username": user[1]})
+    if request.methods=='GET':
+        current_user_id = get_jwt_identity()
+        cur=db.cursor()
+        cur.excecute("select id,username from users where id={%s}",current_user_id)
+        user=cur.fetchone()
+        if user:
+            return jsonify({"id": user[0], "username": user[1]}),200
+        else:
+            return jsonify({'message':"user profile not found"}),401
+    

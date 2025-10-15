@@ -5,6 +5,7 @@ show tables;
 drop table servicetype;
 drop table people;
 drop table phone_records;
+drop table users;
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(100) UNIQUE NOT NULL,
@@ -38,7 +39,12 @@ create table customer (
     primary key(customerid, pid),
     foreign key(pid) references people(pid)
 );
-create table servicetype(serviceid int primary key);
+create table servicetype(
+    serviceid int primary key,
+    service_name varchar(20),
+    basecost int default 2000,
+    description varchar(100),
+);
 create table servicebooking(
     sid int primary key,
     appointmentdate date,
@@ -61,7 +67,21 @@ create table resaleowner(
     primary key(ownerid, pid),
     foreign key(pid) references people(pid)
 );
-ALTER TABLE users MODIFY id INT AUTO_INCREMENT PRIMARY KEY;
+create table servicerecord (
+    recordid int,
+    servicebookid int,
+    workdone bool default false,
+    servicecost int,
+    completiondate date,
+    primary key(recordid, servicebookid),
+    foreign key(servicebookid) references servicebooking(sid)
+);
+create table parts_changed_record (
+    recordid int,
+    partsname varchar(50),
+    qty int default 1,
+    foreign key(recordid) references servicerecord(recordid)
+);
 CREATE TABLE VEHICLE (
     VehicleId VARCHAR(50) NOT NULL,
     Vin VARCHAR(17) NOT NULL,
@@ -76,7 +96,6 @@ CREATE TABLE VEHICLE (
     CONSTRAINT chk_price_vs_cost CHECK (BasePrice >= Cost),
     CONSTRAINT chk_vin_length CHECK (CHAR_LENGTH(Vin) = 17)
 );
-
 CREATE TABLE NEWVEHICLE (
     VehicleId VARCHAR(50) NOT NULL,
     YearOfMake INT,
@@ -84,14 +103,12 @@ CREATE TABLE NEWVEHICLE (
     PRIMARY KEY (VehicleId),
     CONSTRAINT fk_newvehicle_vehicle FOREIGN KEY (VehicleId) REFERENCES VEHICLE(VehicleId)
 );
-
 CREATE TABLE COLORCHOICE (
     VehicleId VARCHAR(50) NOT NULL,
     ColorName VARCHAR(50) UNIQUE NOT NULL,
     PRIMARY KEY (VehicleId),
     CONSTRAINT colorchoice_fk_vehicle FOREIGN KEY (VehicleId) REFERENCES NEWVEHICLE(VehicleId)
 );
-
 CREATE TABLE RESALEVEHICLE (
     VehicleId VARCHAR(50) NOT NULL,
     OwnerId INT NOT NULL,
@@ -100,7 +117,6 @@ CREATE TABLE RESALEVEHICLE (
     CONSTRAINT fk_resalevehicle_vehicle FOREIGN KEY (VehicleId) REFERENCES VEHICLE(VehicleId),
     CONSTRAINT fk_resalevehicle_owner FOREIGN KEY (OwnerId) REFERENCES RESALEOWNER(OwnerId)
 );
-
 CREATE TABLE VEHICLEHISTORY (
     HistoryId VARCHAR(50) NOT NULL,
     VehicleId VARCHAR(50) NOT NULL,
@@ -114,7 +130,6 @@ CREATE TABLE VEHICLEHISTORY (
     PRIMARY KEY (HistoryId),
     CONSTRAINT fk_vehiclehistory_vehicle FOREIGN KEY (VehicleId) REFERENCES RESALEVEHICLE(VehicleId)
 );
-
 CREATE TABLE PERFORMANCE (
     VehicleId VARCHAR(50) NOT NULL,
     Transmission VARCHAR(50),
@@ -125,7 +140,6 @@ CREATE TABLE PERFORMANCE (
     PRIMARY KEY (VehicleId),
     CONSTRAINT fk_performance_vehicle FOREIGN KEY (VehicleId) REFERENCES VEHICLE(VehicleId)
 );
-
 CREATE TABLE INVENTORY (
     InventoryId VARCHAR(50) NOT NULL,
     VehicleId VARCHAR(50) NOT NULL,
@@ -136,7 +150,6 @@ CREATE TABLE INVENTORY (
     CONSTRAINT fk_inventory_vehicle FOREIGN KEY (VehicleId) REFERENCES VEHICLE(VehicleId),
     CONSTRAINT chk_quantity_nonnegative CHECK (Quantity >= 0)
 );
-
 CREATE TABLE MANUFACTURER (
     ManufacturerId VARCHAR(50) NOT NULL,
     VehicleId VARCHAR(50) NOT NULL,
@@ -147,6 +160,34 @@ CREATE TABLE MANUFACTURER (
     PRIMARY KEY (ManufacturerId),
     CONSTRAINT fk_manufacturer_newvehicle FOREIGN KEY (VehicleId) REFERENCES NEWVEHICLE(VehicleId)
 );
-
-
+create table sales(
+    salesid int primary key,
+    salesdate date not null,
+    finalprice float not null,
+    vehicleid VARCHAR(50),
+    foreign key(vehicleid) references VEHICLE(VehicleId)
+);
+create table orderbooking(
+    bookid int primary key,
+    status varchar(20) default 'pending',
+    customerid int,
+    booking date,
+    expirydate date,
+    foreign key(customerid) references customer(customerid)
+);
+create table advance_payment(
+    ad_paymentid int primary key,
+    amount float not null,
+    bookingid int,
+    advancedate date,
+    foreign key(bookingid) references servicebooking(sid)
+);
+create table payment(
+    payid int primary key,
+    amount float not null,
+    paymentmode varchar(50),
+    saleid int,
+    status varchar(20) not null,
+    paymentdate date
+);
 commit;

@@ -29,6 +29,5 @@ def signup_user():
 
     cur.execute("INSERT INTO users (username, password, email, role) VALUES (%s, %s, %s, %s)",(user, password, email, role))
     db.commit()
-
     access_token = create_access_token(identity=user)
     return jsonify({'message': "user created successfully",'access_token': access_token}), 201
