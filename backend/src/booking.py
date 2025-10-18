@@ -20,11 +20,11 @@ def book_a_vehicle():
             cnt=cur.execute("select custid,count(*) from orderbooking group by custid having custid=%s",custid).fetchone()[1] 
             ordid=generate_orderid(custid,cnt)
             try:
-                cur.execute("insert into orderbooking values(%s,%s,%s,%s,%s,%s)",(ordid,'pending',custid,datetime.now(),arrow.now().shift(months+=3),custid))
+                cur.execute("insert into orderbooking values(%s,%s,%s,%s,%s,%s)",(ordid,'pending',custid,datetime.now(), arrow.now().shift(months=3),custid,))
                 cur.execute("commit")
                 return jsonify({'customerid':custid,'message':"succesfully ordered"}),201
             except Exception :
-               return jsonify({'customerid':custid,'message':"unsuccessfull there is some problem int the server"}),400
+               return jsonify({'customerid':custid,'message':"unsuccessfull there is some problem in the server"}),400
         else:
             return jsonify({'message':"the customerid not found"}),400
     
