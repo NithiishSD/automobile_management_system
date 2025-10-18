@@ -42,4 +42,6 @@ def get_vehicle_bookings(customer_id):
         headings=[desc[0] for desc in cur.description]
         return convert_tojson(headings,bookings)
     else:
-        return jsonify({"messsage":"the given customer has no history of records"),400
+        return jsonify({"messsage":"the given customer has no history of records"}),400
+
+
