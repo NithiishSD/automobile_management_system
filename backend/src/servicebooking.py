@@ -18,7 +18,10 @@ def create_service_booking():
     if not all([customer_id, vehicle_id, service_type_id, service_date]):
         return jsonify({"error": "Missing required fields"}), 400
 
-    
+    cur.execute("select sid from sales where cust_id=%s",customer_id)
+    record=cur.fetchall()
+    if not record:
+        return jsonify({"message":"sorry only the vehicles brought in our shop can book for service"}),400
 
     sql = """
         INSERT INTO ServiceBooking (appointment_date,status,service_id,customer_id,vehicle_id)
@@ -50,7 +53,7 @@ def get_service_bookings():
 
     return jsonify(bookings)
 
-@servicebookingbp.route('/servicebookings/<int:service_id>', methods=['GET'])
+@servicebookingbp.route('/api/servicebookings/<int:service_id>', methods=['GET'])
 def get_service_booking(service_id):
     cur = db.cursor()
     sql="""
@@ -75,7 +78,7 @@ def get_service_booking(service_id):
     return jsonify(bookings)
 
 
-@servicebookingbp.route('/servicebookings/<int:service_id>', methods=['PUT'])
+@servicebookingbp.route('/api/servicebookings/<int:service_id>', methods=['PUT'])
 def update_service_booking(service_id):
     data = request.get_json()
     status = data.get('status')
@@ -98,3 +101,32 @@ def update_service_booking(service_id):
     return jsonify({"message": "Service booking updated successfully"}),200
 
 
+
+@servicebookingbp.route('/api/vehicle/<int:vehicle_id>/service-history', methods=['GET'])
+def view_vehicle_service_history(vehicle_id):
+    try:
+        cur = db.cursor()
+        sql="""
+        SELECT sb.sid, c.name AS customer, v.model AS vehicle, st.name AS service_type,st.description as service_done, sb.appointment_date, sb.status,sr.completiondate 
+        FROM ServiceBooking sb
+        JOIN Customer c ON sb.customer_id = c.customer_id
+        JOIN Vehicle v ON sb.vehicle_id = v.vehicle_id
+        JOIN ServiceType st ON sb.sid = st.service_id
+        JOIN servicerecord sr on sb.sid=SR.servicebookid 
+        where v.vehicle_id=%s order by sb.appointment_date desc"""
+        cur.execute(sql, (vehicle_id,))
+        records = cur.fetchall()
+        db.commit()
+        cur.close()
+
+        if not records:
+            return jsonify({"message": "No service history found for this vehicle."}), 404
+        
+        return jsonify({
+            "vehicle_id": vehicle_id,
+            "total_records": len(records),
+            "service_history": records
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
