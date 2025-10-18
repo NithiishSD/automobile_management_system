@@ -426,3 +426,10 @@ update orderbooking
 set vehicleid = 'V002'
 where bookid = 402;
 commit;
+ALTER TABLE `automobile`.`servicebooking`
+ADD COLUMN `customer_id` INT NULL
+AFTER `vehicle_id`,
+    ADD UNIQUE INDEX `customer_id_UNIQUE` (`customer_id` ASC) VISIBLE;
+;
+ALTER TABLE `automobile`.`servicebooking`
+ADD CONSTRAINT `customer_fk_1` FOREIGN KEY (`customer_id`) REFERENCES `automobile`.`customer` (`customerid`) ON DELETE NO ACTION ON UPDATE NO ACTION;

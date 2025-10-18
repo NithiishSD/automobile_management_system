@@ -30,4 +30,11 @@ def get_details():
         return jsonify({"message":"they is not record of the given vehicle id"}),404
 
   
+@vehiclebp.route('/bookings/<int:booking_id>', methods=['DELETE'])
+def delete_booking(booking_id):
+    cur = db.cursor()
+    cur.execute("DELETE FROM service_booking WHERE bookid = %s", (booking_id,))
+    db.commit()
+    cur.close()
+    return jsonify({"message": "Booking deleted successfully"}),200
     
