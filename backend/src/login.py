@@ -31,7 +31,7 @@ def profile():
         current_user_id = get_jwt_identity()
         cur=db.execute()
         cur.excecute("select id,username from users where id={%s}",current_user_id)
-        cur.commit()
+        db.commit()
         cur.close()
         user=cur.fetchone()
         if user:

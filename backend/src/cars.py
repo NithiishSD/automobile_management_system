@@ -12,6 +12,7 @@ def get_cars():
     cur.execute("select * from vehicles where location=%s ",location)
     details=cur.fetchall()
     cur.execute("commit")
+    cur.close()
     if details:
         column_names = [desc[0] for desc in cur.description]
         return convert_tojson(details,column_names),200
