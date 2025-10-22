@@ -4,7 +4,7 @@ from src import db
 
 loginbp=Blueprint('login',__name__)
 
-@loginbp.route('/auth/login',methods=["POST"])
+@loginbp.route('/api/auth/login',methods=["POST"])
 def login_user():
     userdetails=request.get_json()
     user=userdetails.get("user")
