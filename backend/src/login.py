@@ -15,6 +15,7 @@ def login_user():
     y=cur.fetchone()
     print(y)
     cur.execute("commit")
+    cur.close()
     if y :
         return jsonify({'message':"user found"}),200
     else:
@@ -25,10 +26,13 @@ def login_user():
 @loginbp.route('/auth/profile', methods=['GET','PATCH',])
 @jwt_required()
 def profile():
+    cur=db.cursor()
     if request.methods=='GET':
         current_user_id = get_jwt_identity()
-        cur=db.cursor()
+        cur=db.execute()
         cur.excecute("select id,username from users where id={%s}",current_user_id)
+        db.commit()
+        cur.close()
         user=cur.fetchone()
         if user:
             return jsonify({"id": user[0], "username": user[1]}),200

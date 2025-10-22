@@ -15,6 +15,7 @@ CREATE TABLE users (
     updateddate DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 drop table users;
+drop table users;
 create table people(
     pid int primary key,
     firstname varchar(20) not null,
@@ -40,12 +41,17 @@ create table customer (
     foreign key(pid) references people(pid)
 );
 create table servicetype(serviceid int primary key);
+create table servicetype(serviceid int primary key);
 create table servicebooking(
-    sid int primary key,
+    sid int auto_increment primary key,
     appointmentdate date,
     status bool,
     serviceid int,
-    foreign key(serviceid) references servicetype(serviceid)
+    customer_id int,
+    vehicle_id varchar(50),
+    foreign key(serviceid) references servicetype(serviceid),
+    foreign key (vehicle_id) references vehicle(vehicleid),
+    foreign key (customerid) references customer(customerid)
 );
 create table employee (
     employeeid int,
@@ -99,6 +105,7 @@ CREATE TABLE COLORCHOICE (
 CREATE TABLE RESALEVEHICLE (
     VehicleId VARCHAR(50) NOT NULL,
     OwnerId INT NOT NULL,
+    Condition1 VARCHAR(50),
     Condition1 VARCHAR(50),
     PRIMARY KEY (VehicleId),
     CONSTRAINT fk_resalevehicle_vehicle 
@@ -304,3 +311,10 @@ update orderbooking set vehicleid = 'V001' where bookid = 401;
 update orderbooking set vehicleid = 'V002' where bookid = 402;
 
 commit;
+ALTER TABLE `automobile`.`servicebooking`
+ADD COLUMN `customer_id` INT NULL
+AFTER `vehicle_id`,
+    ADD UNIQUE INDEX `customer_id_UNIQUE` (`customer_id` ASC) VISIBLE;
+;
+ALTER TABLE `automobile`.`servicebooking`
+ADD CONSTRAINT `customer_fk_1` FOREIGN KEY (`customer_id`) REFERENCES `automobile`.`customer` (`customerid`) ON DELETE NO ACTION ON UPDATE NO ACTION;
