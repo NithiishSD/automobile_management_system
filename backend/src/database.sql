@@ -15,6 +15,7 @@ CREATE TABLE users (
     updateddate DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 drop table users;
+drop table users;
 create table people(
     pid int primary key,
     firstname varchar(20) not null,
@@ -38,6 +39,7 @@ create table customer (
     primary key(customerid, pid),
     foreign key(pid) references people(pid)
 );
+create table servicetype(serviceid int primary key);
 create table servicetype(serviceid int primary key);
 create table servicebooking(
     sid int auto_increment primary key,
@@ -97,6 +99,7 @@ CREATE TABLE COLORCHOICE (
 CREATE TABLE RESALEVEHICLE (
     VehicleId VARCHAR(50) NOT NULL,
     OwnerId INT NOT NULL,
+    Condition1 VARCHAR(50),
     Condition1 VARCHAR(50),
     PRIMARY KEY (VehicleId),
     CONSTRAINT fk_resalevehicle_vehicle FOREIGN KEY (VehicleId) REFERENCES VEHICLE(VehicleId),

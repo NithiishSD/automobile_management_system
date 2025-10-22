@@ -45,4 +45,5 @@ app.register_blueprint(servicebookingbp)
 app.register_blueprint(signupbp)
 app.register_blueprint(loginbp)
 app.register_blueprint(vehiclebp)
+
 app.register_blueprint(viewbookingbp)
