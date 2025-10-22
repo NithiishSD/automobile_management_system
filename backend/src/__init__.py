@@ -1,7 +1,12 @@
-from flask import Flask ,render_template,request,jsonify 
+from flask import Flask,CORS
 from flask_sqlalchemy import SQLAlchemy
+from flask_jwt_extended import JWTManager
 import mysql.connector
+import os
+import json
+
 app = Flask(__name__)
+CORS(app)
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.json')
 try:
     with open(CONFIG_PATH) as f:
@@ -31,7 +36,12 @@ from .signup import signupbp
 from .login import loginbp
 from .vehicles import vehiclebp
 from .view_user_booking import viewbookingbp
-
+from .booking import bookingbp
+from .payments import paymentbp
+from .servicebooking import servicebookingbp
+app.register_blueprint(bookingbp)
+app.register_blueprint(paymentbp)
+app.register_blueprint(servicebookingbp)
 app.register_blueprint(signupbp)
 app.register_blueprint(loginbp)
 app.register_blueprint(vehiclebp)
