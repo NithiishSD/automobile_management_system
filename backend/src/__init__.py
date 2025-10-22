@@ -6,7 +6,7 @@ import os
 import json
 
 app = Flask(__name__)
-CORS(app,origins=["http://localhost:3000"])
+CORS(app,origins=["http://localhost:5173"])
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.json')
 try:
     with open(CONFIG_PATH) as f:
