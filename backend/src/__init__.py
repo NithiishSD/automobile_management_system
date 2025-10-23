@@ -4,6 +4,7 @@ from flask import Flask
 from flask_jwt_extended import JWTManager
 import mysql.connector
 app = Flask(__name__)
+CORS(app,origins=["http://localhost:5173"])
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.json')
 try:
     with open(CONFIG_PATH) as f:
@@ -37,5 +38,5 @@ from .view_user_booking import viewbookingbp
 app.register_blueprint(signupbp)
 app.register_blueprint(loginbp)
 app.register_blueprint(vehiclebp)
-app.register_blueprint(viewbookingbp)
+
 app.register_blueprint(viewbookingbp)
