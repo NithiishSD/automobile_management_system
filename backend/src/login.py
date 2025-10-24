@@ -23,7 +23,7 @@ def login_user():
     
     
     
-@loginbp.route('/auth/profile', methods=['GET','PATCH',])
+@loginbp.route('/api/auth/profile', methods=['GET','PATCH',])
 @jwt_required()
 def profile():
     cur=db.cursor()
