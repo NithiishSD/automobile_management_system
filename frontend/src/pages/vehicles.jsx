@@ -18,6 +18,7 @@ const VehiclesPage = ({ viewVehicleDetails }) => {
     try {
       const data = await apiRequest('/vehicles');
       setVehicles(data.vehicles || data || []);
+      console.log('Vehicles loaded:', data.vehicles);
     } catch (error) {
       console.error('Failed to load vehicles:', error);
       setVehicles([]);

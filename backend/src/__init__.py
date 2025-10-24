@@ -1,6 +1,7 @@
 import json
 import os
 from flask import Flask
+from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 import mysql.connector
 app = Flask(__name__)

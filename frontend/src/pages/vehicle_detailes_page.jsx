@@ -10,22 +10,41 @@ const VehicleDetailsPage = ({ vehicleId, navigateTo }) => {
   const [purchasing, setPurchasing] = useState(false);
   const { user } = useAuth();
 
-  useEffect(() => {
-    if (vehicleId) {
-      loadVehicle();
-    }
-  }, [vehicleId]);
+  // Map API vehicle data to frontend fields
+  const mapVehicleData = (v) => ({
+    id: v.VehicleId,
+    brand: v.Model.split(' ')[0],
+    model: v.Model,
+    price: parseFloat(v.BasePrice),
+    year: v.Year || null,
+    type: v.Type === 'new' ? 'new' : 'resale',
+    condition: v.Type === 'new' ? 'new' : 'used',
+    mileage: v.Mileage || 0, // Optional if available
+    status: v.StockStatus === 'In Stock' || v.StockStatus === 'Low Stock' ? 'available' : 'unavailable',
+    description: `${v.Model} - ${v.Transmission} - ${v.FuelType}`,
+    imageUrl: v.VehicleImageURL || '',
+  });
 
-  const loadVehicle = async () => {
-    setLoading(true);
-    try {
-      const data = await apiRequest(`/vehicles/${vehicleId}`);
-      setVehicle(data.vehicle || data);
-    } catch (error) {
-      console.error('Failed to load vehicle:', error);
-    }
-    setLoading(false);
-  };
+  useEffect(() => {
+    const loadVehicle = async () => {
+      setLoading(true);
+      try {
+        const data = await apiRequest('/vehicles');
+        if (!data || !data.vehicles) {
+          setVehicle(null);
+        } else {
+          const found = data.vehicles.find(v => v.VehicleId === vehicleId);
+          setVehicle(found ? mapVehicleData(found) : null);
+        }
+      } catch (error) {
+        console.error('Failed to load vehicle:', error);
+        setVehicle(null);
+      }
+      setLoading(false);
+    };
+
+    if (vehicleId) loadVehicle();
+  }, [vehicleId]);
 
   const handlePurchase = async () => {
     if (!user) {
@@ -33,6 +52,8 @@ const VehicleDetailsPage = ({ vehicleId, navigateTo }) => {
       navigateTo('login');
       return;
     }
+
+    if (!vehicle) return;
 
     if (window.confirm(`Confirm purchase of ${vehicle.brand} ${vehicle.model} for $${vehicle.price}?`)) {
       setPurchasing(true);
@@ -54,9 +75,7 @@ const VehicleDetailsPage = ({ vehicleId, navigateTo }) => {
     }
   };
 
-  if (loading) {
-    return <LoadingSpinner message="Loading vehicle details..." />;
-  }
+  if (loading) return <LoadingSpinner message="Loading vehicle details..." />;
 
   if (!vehicle) {
     return (
@@ -80,22 +99,24 @@ const VehicleDetailsPage = ({ vehicleId, navigateTo }) => {
 
       <div className="bg-white rounded-lg shadow-lg overflow-hidden">
         <div className="grid grid-cols-1 md:grid-cols-2">
+          {/* Vehicle Image / Icon */}
           <div className="h-96 bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
-            {vehicle.type === 'car' ? (
+            {vehicle.type === 'new' ? (
               <Car className="h-40 w-40 text-blue-900" />
             ) : (
               <Bike className="h-40 w-40 text-blue-900" />
             )}
           </div>
-          
+
+          {/* Vehicle Details */}
           <div className="p-8">
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h1 className="text-3xl font-bold mb-2">{vehicle.brand} {vehicle.model}</h1>
-                <p className="text-gray-600">{vehicle.year}</p>
+                {vehicle.year && <p className="text-gray-600">Year: {vehicle.year}</p>}
               </div>
-              <span className={`px-3 py-1 rounded ${vehicle.condition === 'new' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
-                {vehicle.condition?.toUpperCase()}
+              <span className={`px-3 py-1 rounded ${vehicle.condition.toLowerCase() === 'new' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
+                {vehicle.condition.toUpperCase()}
               </span>
             </div>
 
@@ -106,7 +127,7 @@ const VehicleDetailsPage = ({ vehicleId, navigateTo }) => {
             <div className="space-y-4 mb-6">
               <div className="flex items-center space-x-3 text-gray-700">
                 <Calendar className="h-5 w-5 text-blue-900" />
-                <span>Year: {vehicle.year}</span>
+                <span>Year: {vehicle.year || 'N/A'}</span>
               </div>
               <div className="flex items-center space-x-3 text-gray-700">
                 <Gauge className="h-5 w-5 text-blue-900" />
