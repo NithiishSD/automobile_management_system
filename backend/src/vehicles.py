@@ -76,7 +76,7 @@ def get_vehicles():
         cur.close()
 
         if not records:
-            return jsonify({"message": "No vehicles found matching filters"}), 404
+            return jsonify({"message": "No vehicles founds matching filters"}), 404
 
         vehicles = [dict(zip(columns, row)) for row in records]
         return jsonify({"count": len(vehicles), "vehicles": vehicles}), 200
