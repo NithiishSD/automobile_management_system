@@ -4,23 +4,36 @@ from src import db
 
 loginbp=Blueprint('login',__name__)
 
-@loginbp.route('/api/auth/login',methods=["POST"])
+@loginbp.route('/api/auth/login', methods=["POST"])
 def login_user():
-    userdetails=request.get_json()
-    user=userdetails.get("user")
-    password=userdetails.get("password")
-    
-    cur=db.cursor()
-    cur.execute("select  * from users where username=%s and password=%s",(user,password))
-    y=cur.fetchone()
-    print(y)
-    cur.execute("commit")
+    userdetails = request.get_json()
+    username = userdetails.get("user")
+    password = userdetails.get("password")
+
+    if not username or not password:
+        return jsonify({'message': "Username and password required"}), 400
+
+    cur = db.cursor(dictionary=True)  # fetch as dictionary for easier access
+    cur.execute("SELECT * FROM users WHERE username=%s AND password=%s", (username, password))
+    user = cur.fetchone()
     cur.close()
-    if y :
-        return jsonify({'message':"user found"}),200
+
+    if user:
+        # create JWT token
+        access_token = create_access_token(identity=username)
+
+        return jsonify({
+            'message': "Login successful",
+            'token': access_token,
+            'user': {
+                "username": user["username"],
+                "email": user["email"],
+                "phone": user.get("phone"),  # optional
+                "role": user.get("role")
+            }
+        }), 200
     else:
-        return jsonify({'message':"user not found"}),401
-    
+        return jsonify({'message': "Invalid username or password"}), 401
     
     
 @loginbp.route('/api/auth/profile', methods=['GET','PATCH',])

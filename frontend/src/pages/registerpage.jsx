@@ -3,12 +3,11 @@ import { useAuth } from '../context/Authcontext';
 
 const RegisterPage = ({ navigateTo }) => {
   const [formData, setFormData] = useState({
-    name: '',
+    user: '',
     email: '',
     password: '',
     confirmPassword: '',
     phone: '',
-    address: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -57,8 +56,8 @@ const RegisterPage = ({ navigateTo }) => {
               type="text"
               required
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              value={formData.user}
+              onChange={(e) => setFormData({ ...formData, user: e.target.value })}
             />
           </div>
 
@@ -84,7 +83,7 @@ const RegisterPage = ({ navigateTo }) => {
             />
           </div>
 
-          <div>
+          {/* <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
             <textarea
               required
@@ -93,7 +92,7 @@ const RegisterPage = ({ navigateTo }) => {
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
             />
-          </div>
+          </div> */}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
