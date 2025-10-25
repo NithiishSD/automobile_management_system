@@ -20,6 +20,7 @@ CREATE TABLE people(
     state VARCHAR(20) NOT NULL,
     age INT NOT NULL
 );
+
 CREATE TABLE phone_records (
     id INT,
     phone1 VARCHAR(15) UNIQUE,
@@ -185,26 +186,14 @@ CREATE TABLE payment(
     status VARCHAR(20) NOT NULL,
     paymentdate DATE
 );
+
 -- USERS
 INSERT INTO users (username, password, email, role)
-VALUES (
-        'john_doe',
-        'pass123',
-        'john@example.com',
-        'user'
-    ),
-    (
-        'admin_user',
-        'admin123',
-        'admin@example.com',
-        'admin'
-    ),
-    (
-        'mary_smith',
-        'mary@pass',
-        'mary@example.com',
-        'user'
-    );
+VALUES 
+('john_doe', 'pass123', 'john@example.com', 'user'),
+('admin_user', 'admin123', 'admin@example.com', 'admin'),
+('mary_smith', 'mary@pass', 'mary@example.com', 'user');
+
 -- PEOPLE
 INSERT INTO people (pid, firstname, lastname, email, city, state, age)
 VALUES
@@ -214,13 +203,17 @@ VALUES
 
 -- PHONE RECORDS
 INSERT INTO phone_records (id, phone1, phone2)
-VALUES (1, '9876543210', '9876501234'),
-    (2, '9998887776', '9997778889'),
-    (3, '9123456780', '9123001112');
+VALUES
+(1, '9876543210', '9876501234'),
+(2, '9998887776', '9997778889'),
+(3, '9123456780', '9123001112');
+
 -- CUSTOMER
 INSERT INTO customer (customerid, pid, customertype, loyaltypoints)
-VALUES (1001, 1, 'regular', 50),
-    (1002, 2, 'premium', 100);
+VALUES
+(1001, 1, 'regular', 50),
+(1002, 2, 'premium', 100);
+
 -- SERVICETYPE
 INSERT INTO servicetype (serviceid) VALUES (101), (102), (103);
 
@@ -239,7 +232,9 @@ VALUES
 
 -- EMPLOYEE
 INSERT INTO employee (employeeid, pid, servicebookid, hiredate)
-VALUES (201, 3, 501, '2020-06-12');
+VALUES
+(201, 3, 501, '2020-06-12');
+
 -- RESALEOWNER
 INSERT INTO resaleowner (ownerid, pid)
 VALUES
@@ -296,8 +291,10 @@ VALUES
 
 -- ADVANCE_PAYMENT
 INSERT INTO advance_payment (ad_paymentid, amount, bookingid, advancedate)
-VALUES (601, 5000, 501, '2025-10-05'),
-    (602, 7000, 502, '2025-10-08');
+VALUES
+(601, 5000, 501, '2025-10-05'),
+(602, 7000, 502, '2025-10-08');
+
 -- PAYMENT
 INSERT INTO payment (payid, amount, paymentmode, saleid, status, paymentdate)
 VALUES
