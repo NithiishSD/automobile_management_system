@@ -241,7 +241,7 @@ def debug_user():
 
 @vehiclebp.route("/api/sell", methods=["POST"])
 def sell_vehicle():
-    """Sell vehicle endpoint - No JWT required"""
+    """Sell vehicle endpoint - No JWT required at all"""
     connection = get_db_connection()
     if connection is None:
         return jsonify({"error": "Database connection unavailable"}), 500
@@ -266,113 +266,150 @@ def sell_vehicle():
         # Start transaction
         connection.start_transaction()
         
-        # Create a generic seller record
-        person_id = f"P{str(uuid.uuid4())[:8].upper()}"
-        person_query = """
-            INSERT INTO people (pid, firstname, lastname, email)
-            VALUES (%s, %s, %s, %s)
-        """
-        seller_name = data.get('seller_name', 'Vehicle Seller')
-        seller_email = data.get('seller_email', 'contact@example.com')
-        cur.execute(person_query, (person_id, seller_name, "Seller", seller_email))
+        # Handle person record - find existing or create new
+        seller_email = data.get('seller_email', '')
+        seller_name = data.get('seller_name', 'Anonymous Seller')
+        person_id = None
         
-        # Create resaleowner record
-        owner_query = "INSERT INTO resaleowner (pid) VALUES (%s)"
-        cur.execute(owner_query, (person_id,))
+        # Try to find existing person record by email
+        if seller_email:
+            cur.execute("SELECT pid FROM people WHERE email = %s", (seller_email,))
+            existing_person = cur.fetchone()
+            
+            if existing_person:
+                # Reuse existing person record
+                person_id = existing_person[0]
+                print(f"Reusing existing person record: {person_id}")
+            else:
+                # Create new person record
+                person_id = f"P{str(uuid.uuid4())[:8].upper()}"
+                person_query = """
+                    INSERT INTO people (pid, firstname, lastname, email)
+                    VALUES (%s, %s, %s, %s)
+                """
+                cur.execute(person_query, (person_id, seller_name, "Seller", seller_email))
+                print(f"Created new person record: {person_id}")
+        else:
+            # No email provided, create new anonymous record
+            person_id = f"P{str(uuid.uuid4())[:8].upper()}"
+            person_query = """
+                INSERT INTO people (pid, firstname, lastname, email)
+                VALUES (%s, %s, %s, %s)
+            """
+            import time
+            cur.execute(person_query, (person_id, seller_name, "Seller", f"anonymous_{int(time.time())}@example.com"))
+            print(f"Created anonymous person record: {person_id}")
+        
+        # Handle resaleowner - check if it exists for this person
         cur.execute("SELECT ownerid FROM resaleowner WHERE pid = %s", (person_id,))
         owner = cur.fetchone()
-        owner_id = owner[0]
         
-        # Create customer record
-        customer_id = f"C{str(uuid.uuid4())[:8].upper()}"
-        customer_query = """
-            INSERT INTO customer (customerid, pid, customertype)
-            VALUES (%s, %s, %s)
-        """
-        cur.execute(customer_query, (customer_id, person_id, "regular"))
+        if not owner:
+            # Create resaleowner record
+            owner_query = "INSERT INTO resaleowner (pid) VALUES (%s)"
+            cur.execute(owner_query, (person_id,))
+            cur.execute("SELECT ownerid FROM resaleowner WHERE pid = %s", (person_id,))
+            owner = cur.fetchone()
+            owner_id = owner[0]
+            print(f"Created new resaleowner record: {owner_id}")
+        else:
+            owner_id = owner[0]
+            print(f"Found existing resaleowner record: {owner_id}")
         
-        # Insert into vehicle table - FIX VIN GENERATION
-        vehicle_query = """
-            INSERT INTO vehicle (VehicleId, Vin, Model, Cost, BasePrice, VehicleImageURL)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """
+        # Handle customer record - check if it exists for this person
+        cur.execute("SELECT customerid FROM customer WHERE pid = %s", (person_id,))
+        customer = cur.fetchone()
+        
+        if not customer:
+            customer_id = f"C{str(uuid.uuid4())[:8].upper()}"
+            customer_query = """
+                INSERT INTO customer (customerid, pid, customertype)
+                VALUES (%s, %s, %s)
+            """
+            cur.execute(customer_query, (customer_id, person_id, "regular"))
+            print(f"Created new customer record: {customer_id}")
+        else:
+            customer_id = customer[0]
+            print(f"Found existing customer record: {customer_id}")
         
         # Generate proper 17-character VIN
         brand_code = data['brand'][:3].upper().ljust(3, 'X')
         model_code = data['model'][:3].upper().ljust(3, 'X')
-        year_code = str(data['year'])[-2:]  # Last 2 digits of year
+        year_code = str(data['year'])[-2:]
         unique_id = str(uuid.uuid4())[:8].upper()
-        
-        # Combine to make exactly 17 characters
         vin = f"{brand_code}{model_code}{year_code}{unique_id}"
-        vin = vin.ljust(17, '0')[:17]  # Ensure exactly 17 characters
-        
-        print(f"Generated VIN: {vin} (Length: {len(vin)})")
+        vin = vin.ljust(17, '0')[:17]
         
         expected_price = float(data['expected_price'])
         cost = expected_price * 0.8
         
+        # Insert vehicle
+        vehicle_query = """
+            INSERT INTO vehicle (VehicleId, Vin, Model, Cost, BasePrice, VehicleImageURL)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """
         vehicle_data = (
-            vehicle_id,
-            vin,
-            f"{data['brand']} {data['model']}",
-            cost,
-            expected_price,
+            vehicle_id, 
+            vin, 
+            f"{data['brand']} {data['model']}", 
+            cost, 
+            expected_price, 
             data.get('image_url', '')
         )
         cur.execute(vehicle_query, vehicle_data)
+        print(f"Created vehicle record: {vehicle_id}")
         
-        # Insert into resalevehicle table
+        # Insert resalevehicle
         resale_query = """
             INSERT INTO resalevehicle (VehicleId, OwnerId, VehicleCondition)
             VALUES (%s, %s, %s)
         """
-        resale_data = (
-            vehicle_id,
-            owner_id,
-            data['condition'].capitalize()
-        )
+        resale_data = (vehicle_id, owner_id, data['condition'].capitalize())
         cur.execute(resale_query, resale_data)
         
-        # Insert into performance table
+        # Insert performance (using fuel efficiency)
         performance_query = """
             INSERT INTO performance (VehicleId, Transmission, FuelType, Mileage)
             VALUES (%s, %s, %s, %s)
         """
+        # Make sure mileage is reasonable fuel efficiency (5-30 km/l)
+        fuel_efficiency = float(data['mileage'])
+        if fuel_efficiency > 50:  # If someone entered total km by mistake
+            fuel_efficiency = 15.0  # Default reasonable fuel efficiency
+        
         performance_data = (
             vehicle_id,
             data.get('transmission', 'Manual'),
             data.get('fuel_type', 'Petrol'),
-            float(data['mileage'])
+            fuel_efficiency
         )
         cur.execute(performance_query, performance_data)
         
-        # Insert into inventory table
+        # Insert inventory
         inventory_query = """
             INSERT INTO inventory (InventoryId, VehicleId, StockStatus, Quantity, Location)
             VALUES (%s, %s, %s, %s, %s)
         """
-        inventory_data = (
-            inventory_id,
-            vehicle_id,
-            "Pending Review",
-            1,
-            "Pending Inspection"
-        )
+        inventory_data = (inventory_id, vehicle_id, "Pending Review", 1, "Pending Inspection")
         cur.execute(inventory_query, inventory_data)
         
-        # Create vehicle history record
+        # Insert vehicle history (using reasonable run kilometers)
         history_id = f"H{str(uuid.uuid4())[:8].upper()}"
         history_query = """
             INSERT INTO vehiclehistory (HistoryId, VehicleId, RecordDate, VehicleCondition, RunKilometers, ServiceRemarks, AccidentHistory, NumOfOwners)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """
+        # For history, use a reasonable total kilometers value
+        total_kilometers = 50000  # Default reasonable value
+        if float(data['mileage']) <= 500000:  # If reasonable total km was provided
+            total_kilometers = int(data['mileage'])
+        
         history_data = (
             history_id,
             vehicle_id,
             datetime.now().date(),
             data['condition'].capitalize(),
-            int(data['mileage']),
+            total_kilometers,
             data.get('description', 'No remarks'),
             data.get('accident_history', 'None reported'),
             1
@@ -384,7 +421,7 @@ def sell_vehicle():
         cur.close()
         
         return jsonify({
-            "message": "Vehicle submitted successfully for review!",
+            "message": "Vehicle submitted successfully for review! Our team will contact you soon.",
             "vehicle_id": vehicle_id,
             "status": "Pending Review"
         }), 201
@@ -392,6 +429,8 @@ def sell_vehicle():
     except Exception as e:
         connection.rollback()
         print(f"Error in sell_vehicle: {str(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         return jsonify({"error": f"Failed to submit vehicle: {str(e)}"}), 500
 
 @vehiclebp.route("/api/pending-vehicles", methods=["GET"])
