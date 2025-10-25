@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Car, Menu, X, User, ShoppingCart, LogIn, LogOut } from 'lucide-react';
+import { Car, Menu, X, User, ShoppingCart, LogIn, LogOut,Calendar } from 'lucide-react';
 import { useAuth } from '../../context/Authcontext';
 
 const Header = ({ navigateTo, currentPage }) => {
@@ -40,6 +40,7 @@ const Header = ({ navigateTo, currentPage }) => {
             <NavLink onClick={() => handleNavClick('contact')} active={currentPage === 'contact'}>
               Contact
             </NavLink>
+            
           </nav>
 
           {/* User Menu */}
@@ -50,6 +51,10 @@ const Header = ({ navigateTo, currentPage }) => {
                   <ShoppingCart className="h-5 w-5" />
                   <span>Orders</span>
                 </button>
+                <button onClick={() => handleNavClick('my-bookings')} className="flex items-center space-x-2 hover:text-blue-200 transition">
+                  <Calendar className="h-5 w-5" />
+                <span>My Bookings</span>
+                  </button>
                 <button onClick={() => handleNavClick('profile')} className="flex items-center space-x-2 hover:text-blue-200 transition">
                   <User className="h-5 w-5" />
                   <span>{user.name}</span>

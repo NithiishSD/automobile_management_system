@@ -17,11 +17,11 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (user, password) => {
     try {
       const data = await apiRequest('/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ user, password }),
       });
       
       const { token, user: userData } = data;
@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const data = await apiRequest('/auth/register', {
+      const data = await apiRequest('/auth/signup', {
         method: 'POST',
         body: JSON.stringify(userData),
       });

@@ -27,21 +27,28 @@ def book_a_vehicle():
                return jsonify({'customerid':custid,'message':"unsuccessfull there is some problem in the server"}),400
         else:
             return jsonify({'message':"the customerid not found"}),400
-    
-@bookingbp.route('/bookings/vehicle/<int:customer_id>', methods=['GET'])
-def get_vehicle_bookings(customer_id):
+        
+@bookingbp.route('/api/bookings', methods=['GET'])
+def get_vehicle_bookings():
+    pid=request.args.get("user")
+    if not pid:
+        return jsonify({"message": "User ID not provided"}), 400
     cur = db.cursor()
-    cur.execute("""
-        SELECT * FROM service_booking
-        WHERE customer_id = %s
-        ORDER BY booking_date DESC
-    """, (customer_id,))
+    cur.execute("SELECT customerid FROM customer WHERE pid=%s", (pid,))
+    customer=cur.fetchone()
+    db.commit()
+    if not customer:
+        cur.close()
+        return jsonify({"message": "Customer not found"}), 400
+    
+    customer_id = customer[0]
+    cur.execute("SELECT o.*,v.model,v.vin,s.finalprice FROM orderbooking o join sales s join vehicle v on o.customerid=s.cust_id and s.vehicleid=v.vehicleid  WHERE customerid=%s ORDER BY booking DESC", (customer_id,))
     bookings = cur.fetchall()
+    if not bookings:
+        cur.close()
+        return jsonify({"message": "No bookings found"}), 204
+    
+    headings = [ "id","status","customerid","created_at","expiry", "vehicle_name","vehicle_id","total_amount"]
     cur.close()
-    if bookings:
-        headings=[desc[0] for desc in cur.description]
-        return convert_tojson(headings,bookings)
-    else:
-        return jsonify({"messsage":"the given customer has no history of records"}),400
-
-
+   
+    return {'orders':convert_tojson(headings, bookings)}

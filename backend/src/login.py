@@ -4,26 +4,39 @@ from src import db
 
 loginbp=Blueprint('login',__name__)
 
-@loginbp.route('/auth/login',methods=["POST"])
+@loginbp.route('/api/auth/login', methods=["POST"])
 def login_user():
-    userdetails=request.get_json()
-    user=userdetails.get("user")
-    password=userdetails.get("password")
-    
-    cur=db.cursor()
-    cur.execute("select  * from users where username=%s and password=%s",(user,password))
-    y=cur.fetchone()
-    print(y)
-    cur.execute("commit")
+    userdetails = request.get_json()
+    username = userdetails.get("user")
+    password = userdetails.get("password")
+
+    if not username or not password:
+        return jsonify({'message': "Username and password required"}), 400
+
+    cur = db.cursor(dictionary=True)  # fetch as dictionary for easier access
+    cur.execute("SELECT * FROM users WHERE username=%s AND password=%s", (username, password))
+    user = cur.fetchone()
     cur.close()
-    if y :
-        return jsonify({'message':"user found"}),200
+
+    if user:
+        # create JWT token
+        access_token = create_access_token(identity=username)
+
+        return jsonify({
+            'message': "Login successful",
+            'token': access_token,
+            'user': {
+                "username": user["username"],
+                "email": user["email"],
+                "phone": user.get("phone"),  # optional
+                "role": user.get("role")
+            }
+        }), 200
     else:
-        return jsonify({'message':"user not found"}),401
+        return jsonify({'message': "Invalid username or password"}), 401
     
     
-    
-@loginbp.route('/auth/profile', methods=['GET','PATCH',])
+@loginbp.route('/api/auth/profile', methods=['GET','PATCH'])
 @jwt_required()
 def profile():
     cur=db.cursor()
@@ -38,4 +51,45 @@ def profile():
             return jsonify({"id": user[0], "username": user[1]}),200
         else:
             return jsonify({'message':"user profile not found"}),401
-    
+    elif request.method == 'PATCH':
+        current_user_id = get_jwt_identity()
+        updated_data = request.get_json()
+        username = updated_data.get("name")
+        email = updated_data.get("email")
+        phone = updated_data.get("phone")
+        age=updated_data.get("age")
+        city=updated_data.get("city")
+        state=updated_data.get("state")
+        update_query = "UPDATE people SET "
+        update_values = []
+       
+        if email:
+            update_query += "email=%s, "
+            update_values.append(email)
+        if phone:
+            update_query += "phone=%s, "
+            update_values.append(phone)
+        
+        if age:
+            update_query += "age=%s, "
+            update_values.append(age)
+        if city:
+            update_query += "city=%s, "
+            update_values.append(city)
+        if state:
+            update_query += "state=%s, "
+            update_values.append(state)
+        update_query = update_query.rstrip(", ") + " WHERE id=%s"
+        update_values.append(current_user_id)
+
+        cur.execute(update_query, tuple(update_values))
+        db.commit()
+        cur.close()
+
+        return jsonify({'message': 'Profile updated successfully'}), 200
+
+@loginbp.route('/api/auth/logout', methods=['POST'])
+@jwt_required()
+def logout():
+    # JWT blacklisting would be implemented here if needed
+     return jsonify({'message': 'Successfully logged out'}), 200

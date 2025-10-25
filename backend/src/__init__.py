@@ -49,7 +49,12 @@ from .signup import signupbp
 from .login import loginbp
 from .vehicles import vehiclebp
 from .view_user_booking import viewbookingbp
-
+from .booking import bookingbp
+from .payments import paymentbp
+from .servicebooking import servicebookingbp
+app.register_blueprint(bookingbp)
+app.register_blueprint(paymentbp)
+app.register_blueprint(servicebookingbp)
 app.register_blueprint(signupbp)
 app.register_blueprint(loginbp)
 app.register_blueprint(vehiclebp)

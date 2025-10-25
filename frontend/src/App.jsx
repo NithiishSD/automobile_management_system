@@ -11,6 +11,8 @@ import ProfilePage from './pages/profilepage';
 import OrdersPage from './pages/orderspage';
 import SellVehiclePage from './pages/sellvehiclepage';
 import ContactPage from './pages/contactPage';
+import BookingPage from './pages/booking';
+import MyBookingsPage from './pages/mybookings';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home');
@@ -42,6 +44,8 @@ function App() {
           {currentPage === 'orders' && <OrdersPage viewVehicleDetails={viewVehicleDetails} />}
           {currentPage === 'sell' && <SellVehiclePage navigateTo={navigateTo} />}
           {currentPage === 'contact' && <ContactPage />}
+          {currentPage === 'booking' && <BookingPage vehicleId={selectedVehicleId} navigateTo={navigateTo} />}
+          {currentPage === 'my-bookings' && <MyBookingsPage viewVehicleDetails={viewVehicleDetails} navigateTo={navigateTo} />}
         </main>
         
         <Footer navigateTo={navigateTo} />
