@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const data = await apiRequest('/auth/register', {
+      const data = await apiRequest('/auth/signup', {
         method: 'POST',
         body: JSON.stringify(userData),
       });

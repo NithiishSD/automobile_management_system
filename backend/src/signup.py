@@ -4,7 +4,7 @@ from flask_jwt_extended import create_access_token
 
 signupbp = Blueprint('signup', __name__)
 
-@signupbp.route('/signup', methods=["POST"])
+@signupbp.route('/api/auth/signup', methods=["POST"])
 def signup_user():
     userdetails = request.get_json()
     user = userdetails.get("user")

@@ -1,4 +1,4 @@
-from flask import Blueprint,flask,request,jsonify
+from flask import Blueprint,Flask,request,jsonify
 from src import db
 from .utility import convert_tojson
 
