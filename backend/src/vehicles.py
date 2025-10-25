@@ -205,42 +205,112 @@ def get_vehicle_options():
         print(f"Error in get_vehicle_options: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
-@vehiclebp.route("/api/sell", methods=["POST"])
+@vehiclebp.route("/api/debug/user", methods=["GET"])
 @jwt_required()
-def sell_vehicle():
-    """Endpoint for users to submit their vehicle for sale"""
+def debug_user():
+    """Debug endpoint to check user information"""
     connection = get_db_connection()
     if connection is None:
         return jsonify({"error": "Database connection unavailable"}), 500
         
     try:
-        current_user = get_jwt_identity()
+        current_user_id = get_jwt_identity()
+        cur = connection.cursor()
+        
+        # Check if user exists
+        cur.execute("SELECT id, username, email, role FROM users WHERE id = %s", (current_user_id,))
+        user = cur.fetchone()
+        
+        # Check if person exists for this user
+        cur.execute("SELECT pid, firstname, lastname FROM people WHERE userid = %s", (current_user_id,))
+        person = cur.fetchone()
+        
+        cur.close()
+        
+        return jsonify({
+            "jwt_user_id": current_user_id,
+            "user_exists": bool(user),
+            "user_data": dict(zip(['id', 'username', 'email', 'role'], user)) if user else None,
+            "person_exists": bool(person),
+            "person_data": dict(zip(['pid', 'firstname', 'lastname'], person)) if person else None
+        }), 200
+        
+    except Exception as e:
+        print(f"Debug error: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@vehiclebp.route("/api/sell", methods=["POST"])
+def sell_vehicle():
+    """Sell vehicle endpoint - No JWT required"""
+    connection = get_db_connection()
+    if connection is None:
+        return jsonify({"error": "Database connection unavailable"}), 500
+        
+    try:
         data = request.get_json()
         
-        # Validate required fields based on your frontend form
+        print(f"Received sell request: {data}")
+        
+        # Validate required fields
         required_fields = ['brand', 'model', 'year', 'condition', 'mileage', 'expected_price']
         for field in required_fields:
             if not data.get(field):
                 return jsonify({"error": f"Missing required field: {field}"}), 400
         
+        cur = connection.cursor()
+        
         # Generate unique IDs
         vehicle_id = f"V{str(uuid.uuid4())[:8].upper()}"
         inventory_id = f"INV{str(uuid.uuid4())[:8].upper()}"
         
-        cur = connection.cursor()
-        
         # Start transaction
         connection.start_transaction()
         
-        # 1. Insert into vehicle table (according to your database.sql)
+        # Create a generic seller record
+        person_id = f"P{str(uuid.uuid4())[:8].upper()}"
+        person_query = """
+            INSERT INTO people (pid, firstname, lastname, email)
+            VALUES (%s, %s, %s, %s)
+        """
+        seller_name = data.get('seller_name', 'Vehicle Seller')
+        seller_email = data.get('seller_email', 'contact@example.com')
+        cur.execute(person_query, (person_id, seller_name, "Seller", seller_email))
+        
+        # Create resaleowner record
+        owner_query = "INSERT INTO resaleowner (pid) VALUES (%s)"
+        cur.execute(owner_query, (person_id,))
+        cur.execute("SELECT ownerid FROM resaleowner WHERE pid = %s", (person_id,))
+        owner = cur.fetchone()
+        owner_id = owner[0]
+        
+        # Create customer record
+        customer_id = f"C{str(uuid.uuid4())[:8].upper()}"
+        customer_query = """
+            INSERT INTO customer (customerid, pid, customertype)
+            VALUES (%s, %s, %s)
+        """
+        cur.execute(customer_query, (customer_id, person_id, "regular"))
+        
+        # Insert into vehicle table - FIX VIN GENERATION
         vehicle_query = """
             INSERT INTO vehicle (VehicleId, Vin, Model, Cost, BasePrice, VehicleImageURL)
             VALUES (%s, %s, %s, %s, %s, %s)
         """
-        vin = f"{data['brand'][:3]}{data['model'][:3]}{data['year']}{str(uuid.uuid4())[:6].upper()}"
-        # Calculate cost as 80% of expected price for resale
+        
+        # Generate proper 17-character VIN
+        brand_code = data['brand'][:3].upper().ljust(3, 'X')
+        model_code = data['model'][:3].upper().ljust(3, 'X')
+        year_code = str(data['year'])[-2:]  # Last 2 digits of year
+        unique_id = str(uuid.uuid4())[:8].upper()
+        
+        # Combine to make exactly 17 characters
+        vin = f"{brand_code}{model_code}{year_code}{unique_id}"
+        vin = vin.ljust(17, '0')[:17]  # Ensure exactly 17 characters
+        
+        print(f"Generated VIN: {vin} (Length: {len(vin)})")
+        
         expected_price = float(data['expected_price'])
-        cost = expected_price * 0.8  # Business logic: cost is 80% of selling price
+        cost = expected_price * 0.8
         
         vehicle_data = (
             vehicle_id,
@@ -248,83 +318,36 @@ def sell_vehicle():
             f"{data['brand']} {data['model']}",
             cost,
             expected_price,
-            ""  # No image URL for user-submitted vehicles initially
+            data.get('image_url', '')
         )
         cur.execute(vehicle_query, vehicle_data)
         
-        # 2. Check if it's new or used and insert accordingly
-        if data['condition'].lower() == 'new':
-            # Insert into newvehicle table
-            new_vehicle_query = """
-                INSERT INTO newvehicle (VehicleId, YearOfMake, WarrantyPeriod)
-                VALUES (%s, %s, %s)
-            """
-            new_vehicle_data = (
-                vehicle_id,
-                int(data['year']),
-                1  # Default 1 year warranty for new vehicles
-            )
-            cur.execute(new_vehicle_query, new_vehicle_data)
-            
-            # Insert into colorchoice (default color)
-            color_query = """
-                INSERT INTO colorchoice (VehicleId, ColorName)
-                VALUES (%s, %s)
-            """
-            color_data = (vehicle_id, "Unknown")  # Default color
-            cur.execute(color_query, color_data)
-            
-        else:  # Used vehicle
-            # Insert into resalevehicle table
-            resale_query = """
-                INSERT INTO resalevehicle (VehicleId, OwnerId, VehicleCondition)
-                VALUES (%s, %s, %s)
-            """
-            # For now, use a default owner ID. In production, you'd link to actual user
-            owner_id = 301  # Default owner ID from your sample data
-            resale_data = (
-                vehicle_id,
-                owner_id,
-                "Good"  # Default condition for used vehicles
-            )
-            cur.execute(resale_query, resale_data)
-            
-            # Insert into vehiclehistory for used vehicles
-            history_id = f"H{str(uuid.uuid4())[:8].upper()}"
-            history_query = """
-                INSERT INTO vehiclehistory (HistoryId, VehicleId, RecordDate, OilCondition, VehicleCondition, RunKilometers, ServiceRemarks, AccidentHistory, NumOfOwners)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """
-            history_data = (
-                history_id,
-                vehicle_id,
-                datetime.now().date(),
-                "Good",  # Default oil condition
-                "Good",  # Default vehicle condition
-                int(data['mileage']),
-                data.get('description', 'No remarks'),  # Use description if provided
-                "None",  # Default no accident history
-                1  # First owner
-            )
-            cur.execute(history_query, history_data)
-        
-        # 3. Insert into performance table
-        performance_query = """
-            INSERT INTO performance (VehicleId, Transmission, Drivetrain, Cylinders, FuelType, Mileage)
-            VALUES (%s, %s, %s, %s, %s, %s)
+        # Insert into resalevehicle table
+        resale_query = """
+            INSERT INTO resalevehicle (VehicleId, OwnerId, VehicleCondition)
+            VALUES (%s, %s, %s)
         """
-        # Use default values for technical specs that user might not provide
+        resale_data = (
+            vehicle_id,
+            owner_id,
+            data['condition'].capitalize()
+        )
+        cur.execute(resale_query, resale_data)
+        
+        # Insert into performance table
+        performance_query = """
+            INSERT INTO performance (VehicleId, Transmission, FuelType, Mileage)
+            VALUES (%s, %s, %s, %s)
+        """
         performance_data = (
             vehicle_id,
-            "Manual",  # Default transmission
-            "FWD",     # Default drivetrain
-            4,         # Default cylinders
-            "Petrol",  # Default fuel type
-            float(data['mileage'])  # Use the mileage from form
+            data.get('transmission', 'Manual'),
+            data.get('fuel_type', 'Petrol'),
+            float(data['mileage'])
         )
         cur.execute(performance_query, performance_data)
         
-        # 4. Insert into inventory table
+        # Insert into inventory table
         inventory_query = """
             INSERT INTO inventory (InventoryId, VehicleId, StockStatus, Quantity, Location)
             VALUES (%s, %s, %s, %s, %s)
@@ -332,24 +355,41 @@ def sell_vehicle():
         inventory_data = (
             inventory_id,
             vehicle_id,
-            "Pending Review",  # Status for user-submitted vehicles
+            "Pending Review",
             1,
-            "Pending Inspection"  # Location until reviewed
+            "Pending Inspection"
         )
         cur.execute(inventory_query, inventory_data)
+        
+        # Create vehicle history record
+        history_id = f"H{str(uuid.uuid4())[:8].upper()}"
+        history_query = """
+            INSERT INTO vehiclehistory (HistoryId, VehicleId, RecordDate, VehicleCondition, RunKilometers, ServiceRemarks, AccidentHistory, NumOfOwners)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        history_data = (
+            history_id,
+            vehicle_id,
+            datetime.now().date(),
+            data['condition'].capitalize(),
+            int(data['mileage']),
+            data.get('description', 'No remarks'),
+            data.get('accident_history', 'None reported'),
+            1
+        )
+        cur.execute(history_query, history_data)
         
         # Commit transaction
         connection.commit()
         cur.close()
         
         return jsonify({
-            "message": "Vehicle submitted successfully for review! Our team will contact you soon.",
+            "message": "Vehicle submitted successfully for review!",
             "vehicle_id": vehicle_id,
             "status": "Pending Review"
         }), 201
         
     except Exception as e:
-        # Rollback in case of error
         connection.rollback()
         print(f"Error in sell_vehicle: {str(e)}")
         return jsonify({"error": f"Failed to submit vehicle: {str(e)}"}), 500
@@ -446,25 +486,52 @@ def update_vehicle_status(vehicle_id):
 @vehiclebp.route("/api/my-vehicles", methods=["GET"])
 @jwt_required()
 def get_my_vehicles():
-    """Get vehicles submitted by the current user for sale"""
+    """Get vehicles submitted by the current user for sale - Fixed version"""
     connection = get_db_connection()
     if connection is None:
         return jsonify({"error": "Database connection unavailable"}), 500
         
     try:
-        current_user = get_jwt_identity()
+        current_user_id = get_jwt_identity()
         
         cur = connection.cursor()
+        
+        # Get person ID for current user
+        cur.execute("SELECT pid FROM people WHERE userid = %s", (current_user_id,))
+        person = cur.fetchone()
+        
+        if not person:
+            return jsonify({"vehicles": []}), 200
+        
+        person_id = person[0]
+        
+        # Get resaleowner ID for this person
+        cur.execute("SELECT ownerid FROM resaleowner WHERE pid = %s", (person_id,))
+        owner = cur.fetchone()
+        
+        if not owner:
+            return jsonify({"vehicles": []}), 200
+        
+        owner_id = owner[0]
+        
         query = """
-            SELECT v.VehicleId, v.Model, v.BasePrice, i.StockStatus, vh.RecordDate, vh.VehicleCondition
+            SELECT 
+                v.VehicleId, 
+                v.Model, 
+                v.BasePrice, 
+                i.StockStatus, 
+                vh.RecordDate, 
+                vh.VehicleCondition,
+                rv.OwnerId
             FROM vehicle v
+            JOIN resalevehicle rv ON v.VehicleId = rv.VehicleId
             JOIN inventory i ON v.VehicleId = i.VehicleId
             JOIN vehiclehistory vh ON v.VehicleId = vh.VehicleId
-            WHERE i.StockStatus = 'Pending Review'
+            WHERE rv.OwnerId = %s
             ORDER BY vh.RecordDate DESC
         """
         
-        cur.execute(query)
+        cur.execute(query, (owner_id,))
         records = cur.fetchall()
         columns = [desc[0] for desc in cur.description]
         cur.close()
