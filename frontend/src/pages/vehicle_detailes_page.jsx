@@ -4,6 +4,15 @@ import { apiRequest } from '../services/api';
 import { useAuth } from '../context/Authcontext';
 import LoadingSpinner from '../components/common/loadingspinner';
 
+
+const handleBookNow = () => {
+  if (!user) {
+    alert('Please login to book this vehicle');
+    navigateTo('login');
+    return;
+  }
+  navigateTo('booking');
+};
 const VehicleDetailsPage = ({ vehicleId, navigateTo }) => {
   const [vehicle, setVehicle] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -125,19 +134,19 @@ const VehicleDetailsPage = ({ vehicleId, navigateTo }) => {
               </div>
             )}
 
-            {vehicle.status === 'available' ? (
-              <button
-                onClick={handlePurchase}
-                disabled={purchasing}
-                className="w-full bg-blue-900 text-white py-3 rounded-lg hover:bg-blue-800 transition disabled:bg-gray-400"
-              >
-                {purchasing ? 'Processing...' : 'Purchase Now'}
-              </button>
-            ) : (
-              <div className="w-full bg-red-100 text-red-800 py-3 rounded-lg text-center font-semibold">
-                Not Available
-              </div>
-            )}
+           {vehicle.status === 'available' ? (
+  <button
+    onClick={handleBookNow}
+    className="w-full bg-blue-900 text-white py-3 rounded-lg hover:bg-blue-800 transition flex items-center justify-center space-x-2"
+  >
+    <Calendar className="h-5 w-5" />
+    <span>Book This Vehicle</span>
+  </button>
+) : (
+  <div className="w-full bg-red-100 text-red-800 py-3 rounded-lg text-center font-semibold">
+    Not Available
+  </div>
+)}
           </div>
         </div>
       </div>

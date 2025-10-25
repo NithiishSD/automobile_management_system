@@ -3,7 +3,8 @@ import { useAuth } from '../context/Authcontext';
 
 const RegisterPage = ({ navigateTo }) => {
   const [formData, setFormData] = useState({
-    user: '',
+    firstName: '',
+    lastName: '',
     email: '',
     password: '',
     confirmPassword: '',
@@ -23,15 +24,22 @@ const RegisterPage = ({ navigateTo }) => {
     }
 
     setLoading(true);
-    const { confirmPassword, ...userData } = formData;
+
+    //Combine first and last name for backend
+    const { firstName, lastName, confirmPassword, ...rest } = formData;
+    const userData = {
+      user: `${firstName} ${lastName}`, // full name
+      ...rest,
+    };
+
     const result = await register(userData);
-    
+
     if (result.success) {
       navigateTo('home');
     } else {
       setError(result.error);
     }
-    
+
     setLoading(false);
   };
 
@@ -50,15 +58,28 @@ const RegisterPage = ({ navigateTo }) => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-            <input
-              type="text"
-              required
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={formData.user}
-              onChange={(e) => setFormData({ ...formData, user: e.target.value })}
-            />
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+              <input
+                type="text"
+                required
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={formData.firstName}
+                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+              />
+            </div>
+
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+              <input
+                type="text"
+                required
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={formData.lastName}
+                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+              />
+            </div>
           </div>
 
           <div>
@@ -82,17 +103,6 @@ const RegisterPage = ({ navigateTo }) => {
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
             />
           </div>
-
-          {/* <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
-            <textarea
-              required
-              rows="2"
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-            />
-          </div> */}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
