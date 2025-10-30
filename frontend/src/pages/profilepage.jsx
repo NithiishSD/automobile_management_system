@@ -6,7 +6,7 @@ const ProfilePage = () => {
   const { user, updateUser } = useAuth();
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({
-    name: user?.name || '',
+    name: user?.username || '',
     phone: user?.phone || '',
     address: user?.address || '',
     city: user?.city || '',
@@ -16,11 +16,42 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
+  
+   useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await apiRequest('/auth/profile', {
+          method: 'GET',
+          body:{"user":JSON.stringify(localStorage.getItem("user"))},
+          headers:{
+            "Authorization": `Bearer ${token}`
+          }
+        });
+        
+        setUser(response);
+        setFormData({
+          name: response.username || '',
+          phone: response.phone || '',
+          address: response.address || '',
+          city: response.city || '',
+          state: response.state || '',
+          age: response.age || '',
+        });
+      } catch (error) {
+        setMessage('Failed to load profile: ' + error.message);
+      } 
+    };
+
+    fetchProfile();
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setMessage('');
-
+     // Fetch profile data on component mount
+ 
     try {
       const response = await apiRequest('/auth/profile', {
         method: 'PUT',
@@ -57,7 +88,7 @@ const ProfilePage = () => {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-              <p className="text-lg">{user?.name}</p>
+              <p className="text-lg">{user?.username}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>

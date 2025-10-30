@@ -54,10 +54,8 @@ def get_vehicles():
         year = request.args.get("year")
         sort_by = request.args.get("sort_by", "v.Model")
 
-        cur = connection.cursor()
-        query = """SELECT 
-                v.VehicleId, v.Vin, v.Model, v.Cost, v.BasePrice, v.VehicleImageURL,
-                p.FuelType, p.Transmission, c.ColorName AS Color, 
+        cur=db.cursor()
+        query = """SELECT v.VehicleId, v.Vin, v.Model, v.Cost, v.BasePrice, v.VehicleImageURL, p.FuelType, p.Transmission, c.ColorName AS Color, 
                 nv.YearOfMake AS Year, i.StockStatus,
                 CASE
                     WHEN nv.VehicleId IS NOT NULL THEN 'new'
@@ -70,25 +68,7 @@ def get_vehicles():
             LEFT JOIN inventory i ON v.VehicleId = i.VehicleId
             LEFT JOIN performance p ON v.VehicleId = p.VehicleId
             LEFT JOIN colorchoice c ON v.VehicleId = c.VehicleId
-            WHERE 1=1
-        cur = connection.cursor()
-        query = """SELECT 
-                v.VehicleId, v.Vin, v.Model, v.Cost, v.BasePrice, v.VehicleImageURL,
-                p.FuelType, p.Transmission, c.ColorName AS Color, 
-                nv.YearOfMake AS Year, i.StockStatus,
-                CASE
-                    WHEN nv.VehicleId IS NOT NULL THEN 'new'
-                    WHEN rv.VehicleId IS NOT NULL THEN 'used'
-                    ELSE 'unknown'
-                END as Type
-            FROM vehicle v
-            LEFT JOIN newvehicle nv ON v.VehicleId = nv.VehicleId
-            LEFT JOIN resalevehicle rv ON v.VehicleId = rv.VehicleId
-            LEFT JOIN inventory i ON v.VehicleId = i.VehicleId
-            LEFT JOIN performance p ON v.VehicleId = p.VehicleId
-            LEFT JOIN colorchoice c ON v.VehicleId = c.VehicleId
-            WHERE 1=1
-        """
+            WHERE 1=1 """
 
         params = []
         if vtype:
@@ -177,10 +157,8 @@ def get_vehicle_by_id(vehicle_id):
         
         query = """SELECT 
                 v.VehicleId, v.Vin, v.Model, v.Cost, v.BasePrice, v.VehicleImageURL,
-                p.FuelType, p.Transmission,
-                c.ColorName AS Color, 
-                nv.YearOfMake AS Year,
-                i.StockStatus,
+                p.FuelType, p.Transmission, c.ColorName AS Color, 
+                nv.YearOfMake AS Year, i.StockStatus,
                 CASE
                     WHEN nv.VehicleId IS NOT NULL THEN 'new'
                     WHEN rv.VehicleId IS NOT NULL THEN 'used'
@@ -192,8 +170,7 @@ def get_vehicle_by_id(vehicle_id):
             LEFT JOIN inventory i ON v.VehicleId = i.VehicleId
             LEFT JOIN performance p ON v.VehicleId = p.VehicleId
             LEFT JOIN colorchoice c ON v.VehicleId = c.VehicleId
-            WHERE v.VehicleId = %s
-        """
+            WHERE 1=1"""
         
         cur.execute(query, (vehicle_id,))
         record = cur.fetchone()

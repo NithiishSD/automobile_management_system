@@ -107,14 +107,7 @@ const SellVehiclePage = () => {
     }));
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
+  
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
       <h1 className="text-4xl font-bold mb-8">Sell Your Vehicle</h1>
