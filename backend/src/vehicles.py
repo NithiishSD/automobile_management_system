@@ -3,23 +3,8 @@ from src import db, create_db_connection
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import uuid
 from datetime import datetime
-from src import db, create_db_connection
-from flask_jwt_extended import jwt_required, get_jwt_identity
-import uuid
-from datetime import datetime
 
 vehiclebp = Blueprint("vehicles", __name__)
-
-def get_db_connection():
-    """Get database connection, reconnect if needed"""
-    try:
-        if db is None or not db.is_connected():
-            print("Database connection lost, reconnecting...")
-            return create_db_connection()
-        return db
-    except:
-        print("Database connection error, reconnecting...")
-        return create_db_connection()
 
 def get_db_connection():
     """Get database connection, reconnect if needed"""
@@ -38,10 +23,6 @@ def get_vehicles():
     if connection is None:
         return jsonify({"error": "Database connection unavailable"}), 500
         
-    connection = get_db_connection()
-    if connection is None:
-        return jsonify({"error": "Database connection unavailable"}), 500
-        
     try:
         vtype = request.args.get("type")
         status = request.args.get("status")
@@ -54,8 +35,10 @@ def get_vehicles():
         year = request.args.get("year")
         sort_by = request.args.get("sort_by", "v.Model")
 
-        cur=db.cursor()
-        query = """SELECT v.VehicleId, v.Vin, v.Model, v.Cost, v.BasePrice, v.VehicleImageURL, p.FuelType, p.Transmission, c.ColorName AS Color, 
+        cur = connection.cursor()
+        query = """SELECT 
+                v.VehicleId, v.Vin, v.Model, v.Cost, v.BasePrice, v.VehicleImageURL,
+                p.FuelType, p.Transmission, c.ColorName AS Color, 
                 nv.YearOfMake AS Year, i.StockStatus,
                 CASE
                     WHEN nv.VehicleId IS NOT NULL THEN 'new'
@@ -68,62 +51,44 @@ def get_vehicles():
             LEFT JOIN inventory i ON v.VehicleId = i.VehicleId
             LEFT JOIN performance p ON v.VehicleId = p.VehicleId
             LEFT JOIN colorchoice c ON v.VehicleId = c.VehicleId
-            WHERE 1=1 """
+            WHERE 1=1
+        """
 
         params = []
         if vtype:
             query += " AND (CASE WHEN nv.VehicleId IS NOT NULL THEN 'new' WHEN rv.VehicleId IS NOT NULL THEN 'used' ELSE 'unknown' END) = %s"
-            query += " AND (CASE WHEN nv.VehicleId IS NOT NULL THEN 'new' WHEN rv.VehicleId IS NOT NULL THEN 'used' ELSE 'unknown' END) = %s"
             params.append(vtype.lower())
         if model:
-            query += " AND v.Model LIKE %s"
             query += " AND v.Model LIKE %s"
             params.append(f"%{model}%")
         if status:
             query += " AND i.StockStatus = %s"
             params.append(status)
-            query += " AND i.StockStatus = %s"
-            params.append(status)
         if fuel_type:
-            query += " AND p.FuelType = %s"
-            params.append(fuel_type)
             query += " AND p.FuelType = %s"
             params.append(fuel_type)
         if transmission:
             query += " AND p.Transmission = %s"
             params.append(transmission)
-            query += " AND p.Transmission = %s"
-            params.append(transmission)
         if color:
-            query += " AND c.ColorName = %s"
-            params.append(color)
             query += " AND c.ColorName = %s"
             params.append(color)
         if year:
             query += " AND nv.YearOfMake = %s"
-            query += " AND nv.YearOfMake = %s"
             params.append(year)
         if min_price:
             query += " AND v.BasePrice >= %s"
-            query += " AND v.BasePrice >= %s"
             params.append(min_price)
         if max_price:
-            query += " AND v.BasePrice <= %s"
             query += " AND v.BasePrice <= %s"
             params.append(max_price)
 
         allowed_sort = {
             "price": "v.BasePrice",
             "model": "v.Model", 
-            "model": "v.Model", 
             "year": "nv.YearOfMake"
         }
         sort_column = allowed_sort.get(sort_by.lower(), "v.Model")
-        query += f" ORDER BY {sort_column}"
-
-        print(f"Executing query: {query}")
-        print(f"With params: {params}")
-        
         query += f" ORDER BY {sort_column}"
 
         print(f"Executing query: {query}")
@@ -157,8 +122,10 @@ def get_vehicle_by_id(vehicle_id):
         
         query = """SELECT 
                 v.VehicleId, v.Vin, v.Model, v.Cost, v.BasePrice, v.VehicleImageURL,
-                p.FuelType, p.Transmission, c.ColorName AS Color, 
-                nv.YearOfMake AS Year, i.StockStatus,
+                p.FuelType, p.Transmission,
+                c.ColorName AS Color, 
+                nv.YearOfMake AS Year,
+                i.StockStatus,
                 CASE
                     WHEN nv.VehicleId IS NOT NULL THEN 'new'
                     WHEN rv.VehicleId IS NOT NULL THEN 'used'
@@ -170,7 +137,8 @@ def get_vehicle_by_id(vehicle_id):
             LEFT JOIN inventory i ON v.VehicleId = i.VehicleId
             LEFT JOIN performance p ON v.VehicleId = p.VehicleId
             LEFT JOIN colorchoice c ON v.VehicleId = c.VehicleId
-            WHERE 1=1"""
+            WHERE v.VehicleId = %s
+        """
         
         cur.execute(query, (vehicle_id,))
         record = cur.fetchone()
