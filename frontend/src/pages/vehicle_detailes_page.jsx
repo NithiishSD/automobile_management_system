@@ -4,6 +4,15 @@ import { apiRequest } from '../services/api';
 import { useAuth } from '../context/Authcontext';
 import LoadingSpinner from '../components/common/loadingspinner';
 
+
+const handleBookNow = () => {
+  if (!user) {
+    alert('Please login to book this vehicle');
+    navigateTo('login');
+    return;
+  }
+  navigateTo('booking');
+};
 const VehicleDetailsPage = ({ vehicleId, navigateTo }) => {
   const [vehicle, setVehicle] = useState(null);
   const [loading, setLoading] = useState(true);

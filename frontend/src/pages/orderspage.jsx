@@ -13,9 +13,11 @@ const OrdersPage = ({ viewVehicleDetails }) => {
 
   const loadOrders = async () => {
     setLoading(true);
-    try {
-      const data = await apiRequest('/orders');
-      setOrders(data.orders || data || []);
+    const user = JSON.parse(localStorage.getItem('user'))?.pid;
+    if (!user) throw new Error("User not found");
+    try{
+        const data = await apiRequest(`/bookings?user=${encodeURIComponent(user)}`);
+        setOrders(data.orders || data || []);
     } catch (error) {
       console.error('Failed to load orders:', error);
       setOrders([]);

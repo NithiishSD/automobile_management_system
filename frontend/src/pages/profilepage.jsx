@@ -9,6 +9,9 @@ const ProfilePage = () => {
     name: user?.name || '',
     phone: user?.phone || '',
     address: user?.address || '',
+    city: user?.city || '',
+    state: user?.state || '',
+    age: user?.age || '',
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -29,7 +32,7 @@ const ProfilePage = () => {
     } catch (error) {
       setMessage('Failed to update profile: ' + error.message);
     }
-    
+
     setLoading(false);
   };
 
@@ -39,7 +42,13 @@ const ProfilePage = () => {
 
       <div className="bg-white rounded-lg shadow-lg p-8">
         {message && (
-          <div className={`mb-4 p-3 rounded-lg ${message.includes('success') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+          <div
+            className={`mb-4 p-3 rounded-lg ${
+              message.includes('success')
+                ? 'bg-green-100 text-green-700'
+                : 'bg-red-100 text-red-700'
+            }`}
+          >
             {message}
           </div>
         )}
@@ -62,6 +71,19 @@ const ProfilePage = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
               <p className="text-lg">{user?.address || 'Not provided'}</p>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+              <p className="text-lg">{user?.city || 'Not provided'}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+              <p className="text-lg">{user?.state || 'Not provided'}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
+              <p className="text-lg">{user?.age || 'Not provided'}</p>
+            </div>
+
             <button
               onClick={() => setEditing(true)}
               className="mt-6 bg-blue-900 text-white px-6 py-2 rounded-lg hover:bg-blue-800 transition"
@@ -101,6 +123,40 @@ const ProfilePage = () => {
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               />
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
+                <input
+                  type="text"
+                  required
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={formData.city}
+                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">State</label>
+                <input
+                  type="text"
+                  required
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={formData.state}
+                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Age</label>
+              <input
+                type="number"
+                min="0"
+                required
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={formData.age}
+                onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+              />
+            </div>
+
             <div className="flex space-x-4">
               <button
                 type="submit"
