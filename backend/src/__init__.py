@@ -5,9 +5,13 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 import mysql.connector
 
-app = Flask(__name__)
-CORS(app, origins=["http://localhost:5173"])
+app = Flask(__name__,static_folder='static')
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
+app.config["PERMANENT_SESSION_LIFETIME"] = 10  # seconds
 
+CORS(app, resources={r"/api/*": {"origins": "*"}}, 
+     supports_credentials=True,
+     allow_headers=["Content-Type", "Authorization"])
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.json')
 try:
     with open(CONFIG_PATH) as f:
@@ -28,7 +32,10 @@ def create_db_connection():
             user=config.get("DB_USER", "root"),
             password=config.get("DB_PASSWORD", ""),
             database=config.get("DB_NAME", "automobile"),
-            ssl_disabled=True
+            charset="utf8mb4",
+            use_unicode=True,
+            ssl_disabled=True,
+            connection_timeout= 5,
         )
         
         if connection.is_connected():
@@ -48,13 +55,14 @@ db = create_db_connection()
 from .signup import signupbp
 from .login import loginbp
 from .vehicles import vehiclebp
+from .booking import bookingbp
 from .view_user_booking import viewbookingbp
 
 app.register_blueprint(signupbp)
 app.register_blueprint(loginbp)
 app.register_blueprint(vehiclebp)
 app.register_blueprint(viewbookingbp)
-
+app.register_blueprint(bookingbp)
 @app.route('/api/health')
 def health_check():
     """Health check endpoint to verify database connection"""

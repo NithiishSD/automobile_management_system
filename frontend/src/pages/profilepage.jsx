@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/Authcontext';
 import { apiRequest } from '../services/api';
 
@@ -20,11 +20,14 @@ const ProfilePage = () => {
    useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem("auth_token");
+        console.log(localStorage.getItem("auth_token"));
+
         const response = await apiRequest('/auth/profile', {
           method: 'GET',
-          body:{"user":JSON.stringify(localStorage.getItem("user"))},
+         
           headers:{
+            "Content-Type": "application/json",
             "Authorization": `Bearer ${token}`
           }
         });

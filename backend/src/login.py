@@ -63,29 +63,32 @@ def login_user():
     }), 200
 
 
-# Logout route
-@loginbp.route('/api/auth/logout', methods=["POST"])
-@jwt_required()
-def logout_user():
-    jti = get_jwt()['jti']  # JWT ID - unique identifier for the token
-    token_blacklist.add(jti)
-    return jsonify({'message': "Successfully logged out"}), 200
 
-@loginbp.route('/api/auth/profile', methods=['GET','PATCH'])
+
+@loginbp.route('/api/auth/profile', methods=['GET','PUT'])
 @jwt_required()
 def profile():
-    if request.methods=='GET':
+    if request.method=='GET':
+        
         current_user_id = get_jwt_identity()
-        cur=db.cursor(dictionary=True)
-        cur.excecute("select *  from people where pid in (select pid from user where id={%s})",current_user_id)
-        db.commit()
-        cur.close()
+        cur = db.cursor(dictionary=True)
+        if current_user_id:
+            
+            
+            
+            print(current_user_id)
+            cur.execute("select p.*, r.phone1 as phone   from people p left join phone_records r on p.pid=r.id  where userid=%s",(current_user_id,))
+        else:
+            print("the userid is empty")
         user=cur.fetchone()
+        print(user)
+        cur.close()
         if user:
-            return jsonify({"id": current_user_id, "username": user[1]}),200
+            return jsonify(user),200
         else:
             return jsonify({'message':"user profile not found"}),401
-    elif request.method == 'PATCH':
+        
+    elif request.method == 'PUT':
 
         current_user_id = get_jwt_identity()
         updated_data = request.get_json()
@@ -101,9 +104,6 @@ def profile():
         if email:
             update_query += "email=%s, "
             update_values.append(email)
-        if phone:
-            update_query += "phone=%s, "
-            update_values.append(phone)
         
         if age:
             update_query += "age=%s, "

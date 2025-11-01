@@ -4,7 +4,9 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 import uuid
 from datetime import datetime
 
-vehiclebp = Blueprint("vehicles", __name__)
+vehiclebp = Blueprint("vehicles", __name__,static_folder='static')
+
+current_host="http://127.0.0.1:5000"
 
 def get_db_connection():
     """Get database connection, reconnect if needed"""
@@ -24,6 +26,8 @@ def get_vehicles():
         return jsonify({"error": "Database connection unavailable"}), 500
         
     try:
+        print("➡️ API hit: /api/vehicles")
+
         vtype = request.args.get("type")
         status = request.args.get("status")
         model = request.args.get("model")
@@ -35,76 +39,102 @@ def get_vehicles():
         year = request.args.get("year")
         sort_by = request.args.get("sort_by", "v.Model")
 
-        cur = connection.cursor()
-        query = """SELECT 
-                v.VehicleId, v.Vin, v.Model, v.Cost, v.BasePrice, v.VehicleImageURL,
-                p.FuelType, p.Transmission, c.ColorName AS Color, 
-                nv.YearOfMake AS Year, i.StockStatus,
-                CASE
-                    WHEN nv.VehicleId IS NOT NULL THEN 'new'
-                    WHEN rv.VehicleId IS NOT NULL THEN 'used'
-                    ELSE 'unknown'
-                END as Type
+        
+        
+        query = """
+                SELECT 
+            v.VehicleId, v.Vin, v.Model, v.Cost, v.BasePrice, v.VehicleImageURL,
+            p.FuelType, p.Transmission,
+            c.ColorName AS Color, 
+            nv.YearOfMake AS Year,
+            i.StockStatus,
+            CASE
+                WHEN nv.VehicleId IS NOT NULL THEN 'new'
+                WHEN rv.VehicleId IS NOT NULL THEN 'used'
+                ELSE 'unknown'
+            END AS Type
             FROM vehicle v
             LEFT JOIN newvehicle nv ON v.VehicleId = nv.VehicleId
-            LEFT JOIN resalevehicle rv ON v.VehicleId = rv.VehicleId
-            LEFT JOIN inventory i ON v.VehicleId = i.VehicleId
-            LEFT JOIN performance p ON v.VehicleId = p.VehicleId
-            LEFT JOIN colorchoice c ON v.VehicleId = c.VehicleId
-            WHERE 1=1
+                LEFT JOIN resalevehicle rv ON v.VehicleId = rv.VehicleId
+        LEFT JOIN inventory i ON v.VehicleId = i.VehicleId
+        LEFT JOIN performance p ON v.VehicleId = p.VehicleId
+        LEFT JOIN colorchoice c ON v.VehicleId = c.VehicleId
+        WHERE 1=1
         """
 
         params = []
+
+        # ✅ Apply filters safely
         if vtype:
-            query += " AND (CASE WHEN nv.VehicleId IS NOT NULL THEN 'new' WHEN rv.VehicleId IS NOT NULL THEN 'used' ELSE 'unknown' END) = %s"
-            params.append(vtype.lower())
+            if vtype.lower() == "new":
+                query += " AND nv.VehicleId IS NOT NULL"
+            elif vtype.lower() == "used":
+                query += " AND rv.VehicleId IS NOT NULL"
+
         if model:
             query += " AND v.Model LIKE %s"
             params.append(f"%{model}%")
+
         if status:
             query += " AND i.StockStatus = %s"
             params.append(status)
+
         if fuel_type:
             query += " AND p.FuelType = %s"
             params.append(fuel_type)
+
         if transmission:
             query += " AND p.Transmission = %s"
             params.append(transmission)
+
         if color:
             query += " AND c.ColorName = %s"
             params.append(color)
+
         if year:
             query += " AND nv.YearOfMake = %s"
             params.append(year)
+
         if min_price:
             query += " AND v.BasePrice >= %s"
             params.append(min_price)
+
         if max_price:
             query += " AND v.BasePrice <= %s"
             params.append(max_price)
 
+        # ✅ Safe sorting
         allowed_sort = {
             "price": "v.BasePrice",
             "model": "v.Model", 
             "year": "nv.YearOfMake"
         }
-        sort_column = allowed_sort.get(sort_by.lower(), "v.Model")
+        sort_column = allowed_sort.get((sort_by or "model").lower(), "v.Model")
         query += f" ORDER BY {sort_column}"
 
         print(f"Executing query: {query}")
         print(f"With params: {params}")
         
+        cur = connection.cursor(dictionary=True)
+        # cur.execute("SHOW PROCESSLIST")
+       
         cur.execute(query, tuple(params))
+        print("Query executed successfully")
         records = cur.fetchall()
-        columns = [desc[0] for desc in cur.description]
-        cur.close()
-
+        db.commit()
+        print("Query executed successfully")
+        if records:
+            for record in records:
+                    record["VehicleImageURL"]=f"{current_host}/{record.get("VehicleImageURL")}"
+            
+            cur.close()
+            print("✅ API completed successfully")
         if not records:
+            cur.close()
             return jsonify({"message": "No vehicles found matching filters"}), 200
 
-        vehicles = [dict(zip(columns, row)) for row in records]
-        return jsonify({"count": len(vehicles), "vehicles": vehicles}), 200
-
+        return jsonify({"count": len(records), "vehicles":records}), 200
+            
     except Exception as e:
         print(f"Error in get_vehicles: {str(e)}")
         return jsonify({"error": str(e)}), 500
@@ -112,38 +142,21 @@ def get_vehicles():
 @vehiclebp.route("/api/vehicles/<vehicle_id>", methods=["GET"])
 def get_vehicle_by_id(vehicle_id):
     connection = get_db_connection()
+    print("exit out of connection functin")
     if connection is None:
         return jsonify({"error": "Database connection unavailable"}), 500
         
     try:
         print(f"Fetching vehicle with ID: {vehicle_id}")
         
-        cur = connection.cursor()
-        
-        query = """SELECT 
-                v.VehicleId, v.Vin, v.Model, v.Cost, v.BasePrice, v.VehicleImageURL,
-                p.FuelType, p.Transmission,
-                c.ColorName AS Color, 
-                nv.YearOfMake AS Year,
-                i.StockStatus,
-                CASE
-                    WHEN nv.VehicleId IS NOT NULL THEN 'new'
-                    WHEN rv.VehicleId IS NOT NULL THEN 'used'
-                    ELSE 'unknown'
-                END as Type
-            FROM vehicle v
-            LEFT JOIN newvehicle nv ON v.VehicleId = nv.VehicleId
-            LEFT JOIN resalevehicle rv ON v.VehicleId = rv.VehicleId
-            LEFT JOIN inventory i ON v.VehicleId = i.VehicleId
-            LEFT JOIN performance p ON v.VehicleId = p.VehicleId
-            LEFT JOIN colorchoice c ON v.VehicleId = c.VehicleId
-            WHERE v.VehicleId = %s
-        """
-        
-        cur.execute(query, (vehicle_id,))
-        record = cur.fetchone()
-        
-        print(f"Database result: {record}")
+        cur = connection.cursor(dictionary=True)
+        print("enttered procedure")
+        cur.callproc('GetVehicleById', (vehicle_id,))
+        print("came out")
+        for result in cur.stored_results():
+            record = result.fetchone()
+            record["VehicleImageURL"]=f"{current_host}/{record.get("VehicleImageURL")}"
+        # print(f"Database result: {record}")
 
         if not record:
             cur.close()
@@ -152,8 +165,8 @@ def get_vehicle_by_id(vehicle_id):
         columns = [desc[0] for desc in cur.description]
         cur.close()
 
-        vehicle = dict(zip(columns, record))
-        print(f"Mapped vehicle: {vehicle}")
+        vehicle = record
+        # print(f"Mapped vehicle: {vehicle}")
         return jsonify(vehicle), 200
 
     except Exception as e:
@@ -161,38 +174,46 @@ def get_vehicle_by_id(vehicle_id):
         import traceback
         print(f"Traceback: {traceback.format_exc()}")
         return jsonify({"error": str(e)}), 500
+    finally:
+        if cur:
+            cur.close()
+        
 
 @vehiclebp.route("/api/vehicle-options", methods=["GET"])
 def get_vehicle_options():
     connection = get_db_connection()
     if connection is None:
         return jsonify({"error": "Database connection unavailable"}), 500
-        
+
     try:
+        cur = connection.cursor()
+
         cur = connection.cursor()
         
         # Get fuel types
         cur.execute("SELECT DISTINCT FuelType FROM performance WHERE FuelType IS NOT NULL")
         fuel_types = [row[0] for row in cur.fetchall()]
-        
+        db.commit()
         # Get colors
         cur.execute("SELECT DISTINCT ColorName FROM colorchoice WHERE ColorName IS NOT NULL")
         colors = [row[0] for row in cur.fetchall()]
+        db.commit()
         
         # Get transmissions
         cur.execute("SELECT DISTINCT Transmission FROM performance WHERE Transmission IS NOT NULL")
         transmissions = [row[0] for row in cur.fetchall()]
-        
+        db.commit()
         # Get years
         cur.execute("SELECT DISTINCT YearOfMake FROM newvehicle WHERE YearOfMake IS NOT NULL ORDER BY YearOfMake DESC")
         years = [str(row[0]) for row in cur.fetchall()]
-        
+        db.commit()
         # Get statuses (from inventory)
         cur.execute("SELECT DISTINCT StockStatus FROM inventory WHERE StockStatus IS NOT NULL")
         statuses = [row[0] for row in cur.fetchall()]
-        
-        cur.close()
-        
+        db.commit()
+        print("options are done------------------------------")
+        if cur: 
+            cur.close()
         return jsonify({
             "fuelTypes": fuel_types,
             "colors": colors,
@@ -200,10 +221,11 @@ def get_vehicle_options():
             "years": years,
             "statuses": statuses
         }), 200
-        
+
     except Exception as e:
         print(f"Error in get_vehicle_options: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
 
 @vehiclebp.route("/api/debug/user", methods=["GET"])
 @jwt_required()
@@ -241,6 +263,7 @@ def debug_user():
 
 @vehiclebp.route("/api/sell", methods=["POST"])
 def sell_vehicle():
+    print("entered the sell functin")
     """Sell vehicle endpoint - No JWT required at all"""
     connection = get_db_connection()
     if connection is None:
@@ -275,7 +298,7 @@ def sell_vehicle():
         if seller_email:
             cur.execute("SELECT pid FROM people WHERE email = %s", (seller_email,))
             existing_person = cur.fetchone()
-            
+            db.commit()
             if existing_person:
                 # Reuse existing person record
                 person_id = existing_person[0]
@@ -288,6 +311,7 @@ def sell_vehicle():
                     VALUES (%s, %s, %s, %s)
                 """
                 cur.execute(person_query, (person_id, seller_name, "Seller", seller_email))
+                db.commit()
                 print(f"Created new person record: {person_id}")
         else:
             # No email provided, create new anonymous record
@@ -299,19 +323,29 @@ def sell_vehicle():
             import time
             cur.execute(person_query, (person_id, seller_name, "Seller", f"anonymous_{int(time.time())}@example.com"))
             print(f"Created anonymous person record: {person_id}")
+            db.commit()
         
         # Handle resaleowner - check if it exists for this person
         cur.execute("SELECT ownerid FROM resaleowner WHERE pid = %s", (person_id,))
         owner = cur.fetchone()
+        db.commit()
+        cur.execute("select count(*) from resaleowner")
         
+        max_id = cur.fetchone()[0]
+        db.commit()
+        newid = 1 if max_id is None else max_id + 1
+        cur=connection.cursor()
         if not owner:
             # Create resaleowner record
-            owner_query = "INSERT INTO resaleowner (pid) VALUES (%s)"
-            cur.execute(owner_query, (person_id,))
+
+            owner_query = "INSERT INTO resaleowner (ownerid,pid) VALUES(%s,%s)"
+            cur.execute(owner_query, (newid,person_id))
             cur.execute("SELECT ownerid FROM resaleowner WHERE pid = %s", (person_id,))
             owner = cur.fetchone()
+            connection.commit()
             owner_id = owner[0]
             print(f"Created new resaleowner record: {owner_id}")
+            
         else:
             owner_id = owner[0]
             print(f"Found existing resaleowner record: {owner_id}")
@@ -319,7 +353,7 @@ def sell_vehicle():
         # Handle customer record - check if it exists for this person
         cur.execute("SELECT customerid FROM customer WHERE pid = %s", (person_id,))
         customer = cur.fetchone()
-        
+        db.commit()
         if not customer:
             customer_id = f"C{str(uuid.uuid4())[:8].upper()}"
             customer_query = """
@@ -343,6 +377,8 @@ def sell_vehicle():
         expected_price = float(data['expected_price'])
         cost = expected_price * 0.8
         
+        if connection is None:
+            return jsonify({"error": "Database connection unavailable"}), 500 
         # Insert vehicle
         vehicle_query = """
             INSERT INTO vehicle (VehicleId, Vin, Model, Cost, BasePrice, VehicleImageURL)
@@ -358,15 +394,32 @@ def sell_vehicle():
         )
         cur.execute(vehicle_query, vehicle_data)
         print(f"Created vehicle record: {vehicle_id}")
-        
+        db.commit()
         # Insert resalevehicle
         resale_query = """
-            INSERT INTO resalevehicle (VehicleId, OwnerId, VehicleCondition)
-            VALUES (%s, %s, %s)
+            INSERT INTO resalevehicle (VehicleId, OwnerId, Conditions,verification)
+            VALUES (%s, %s, %s,%s)
         """
-        resale_data = (vehicle_id, owner_id, data['condition'].capitalize())
+        pending_query = """
+                    INSERT INTO pending_vehicle_details
+                        (VehicleId, Transmission, FuelType, Mileage, Location, RunKilometers, Description, AccidentHistory)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        pending_data = (
+            vehicle_id,
+            data.get('transmission', 'Manual'),
+            data.get('fuel_type', 'Petrol'),
+            float(data.get('mileage', 15.0)),
+            'Pending Inspection',
+            int(data.get('mileage', 50000)),
+            data.get('description', 'No remarks'),
+            data.get('accident_history', 'None reported')
+        )
+        cur.execute(pending_query, pending_data)
+        db.commit()
+        resale_data = (vehicle_id, owner_id, data['condition'].capitalize(),"Pending Inspection")
         cur.execute(resale_query, resale_data)
-        
+        db.commit()
         # Insert performance (using fuel efficiency)
         performance_query = """
             INSERT INTO performance (VehicleId, Transmission, FuelType, Mileage)
@@ -384,7 +437,7 @@ def sell_vehicle():
             fuel_efficiency
         )
         cur.execute(performance_query, performance_data)
-        
+        db.commit()
         # Insert inventory
         inventory_query = """
             INSERT INTO inventory (InventoryId, VehicleId, StockStatus, Quantity, Location)
@@ -392,7 +445,7 @@ def sell_vehicle():
         """
         inventory_data = (inventory_id, vehicle_id, "Pending Review", 1, "Pending Inspection")
         cur.execute(inventory_query, inventory_data)
-        
+        db.commit()
         # Insert vehicle history (using reasonable run kilometers)
         history_id = f"H{str(uuid.uuid4())[:8].upper()}"
         history_query = """
@@ -403,7 +456,7 @@ def sell_vehicle():
         total_kilometers = 50000  # Default reasonable value
         if float(data['mileage']) <= 500000:  # If reasonable total km was provided
             total_kilometers = int(data['mileage'])
-        
+
         history_data = (
             history_id,
             vehicle_id,
@@ -415,7 +468,7 @@ def sell_vehicle():
             1
         )
         cur.execute(history_query, history_data)
-        
+        db.commit()
         # Commit transaction
         connection.commit()
         cur.close()
@@ -538,7 +591,7 @@ def get_my_vehicles():
         # Get person ID for current user
         cur.execute("SELECT pid FROM people WHERE userid = %s", (current_user_id,))
         person = cur.fetchone()
-        
+        db.commit()
         if not person:
             return jsonify({"vehicles": []}), 200
         

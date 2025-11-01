@@ -33,13 +33,13 @@ const VehicleDetailsPage = ({ vehicleId, navigateTo }) => {
     condition: v.VehicleCondition || (v.Type === 'new' ? 'new' : 'used'),
     fuelType: v.FuelType || 'N/A',
     transmission: v.Transmission || 'N/A',
-    drivetrain: v.Drivetrain || 'N/A',
-    cylinders: v.Cylinders || 'N/A',
+    drivetrain: v.drivetrain || 'N/A',
+    cylinders: v.cylinders || 'N/A',
     mileage: v.Mileage || 0,
     color: v.Color || 'N/A',
     warrantyPeriod: v.WarrantyPeriod || 0,
     stockStatus: v.StockStatus || 'Unknown',
-    quantity: v.Quantity || 0,
+    quantity: v.quantity || 0,
     location: v.Location || 'N/A',
     manufacturer: v.ManufacturerName || 'N/A',
     imageUrl: v.VehicleImageURL || '',
@@ -92,13 +92,13 @@ const VehicleDetailsPage = ({ vehicleId, navigateTo }) => {
     if (window.confirm(`Confirm purchase of ${vehicle.brand} ${vehicle.model} for $${vehicle.price}?`)) {
       setPurchasing(true);
       try {
-        await apiRequest('/orders', {
+        await apiRequest('/bookings', {
           method: 'POST',
-          body: {
+          body: JSON.stringify({
             vehicle_id: vehicle.id,
             quantity: 1,
             total_amount: vehicle.price,
-          },
+          }),
         });
         alert('Order placed successfully!');
         navigateTo('orders');
@@ -135,8 +135,9 @@ const VehicleDetailsPage = ({ vehicleId, navigateTo }) => {
   }
 
   const isAvailable = vehicle.stockStatus === 'In Stock' || vehicle.stockStatus === 'Low Stock';
-  const isNewVehicle = vehicle.type === 'new';
 
+  const isNewVehicle = vehicle.type === 'new';
+  console.log(vehicle)
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <button 
@@ -258,7 +259,7 @@ const VehicleDetailsPage = ({ vehicleId, navigateTo }) => {
             <div className="mb-6 p-4 bg-blue-50 rounded-lg">
               <h3 className="font-semibold mb-2">Inventory</h3>
               <p className="text-sm text-blue-700">
-                {vehicle.quantity} available at {vehicle.location}
+                {vehicle.quantity} available 
               </p>
             </div>
 

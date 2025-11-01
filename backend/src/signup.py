@@ -44,7 +44,9 @@ def signup_user():
     db.commit()
     people_id=f"Pep{new_id}"
     cur.execute("insert into people(pid,firstname,lastname,email,userid) values(%s,%s,%s,%s,%s)",(people_id,firstname,lastname,email,new_id))
+
     db.commit()
+    
     if role=="user":
         cur.execute("SELECT count(*) FROM customer")
         max_id = cur.fetchone()[0]

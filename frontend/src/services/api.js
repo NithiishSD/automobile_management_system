@@ -13,6 +13,7 @@ export const apiRequest = async (endpoint, options = {}) => {
   console.log(`Making API request to: ${url}`);
   console.log('Request options:', { method: options.method || 'GET', headers });
 
+  
   try {
     const response = await fetch(url, {
       ...options,
@@ -37,6 +38,7 @@ export const apiRequest = async (endpoint, options = {}) => {
     }
 
     const data = await response.json();
+    console.log(data)
     console.log('Response data received:', data);
     return data;
   } catch (error) {
