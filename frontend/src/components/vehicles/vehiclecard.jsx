@@ -4,7 +4,7 @@ import { Car, Bike, Eye } from 'lucide-react';
 const VehicleCard = ({ vehicle, onViewDetails }) => {
   const mapVehicleData = (v) => ({
     id: v.VehicleId,
-    brand: v.Model?.split(' ')[0] || 'Unknown',
+    brand: v.brand || 'Unknown',
     model: v.Model,
     price: parseFloat(v.BasePrice) || 0,
     year: v.Year || null,

@@ -6,7 +6,7 @@ const ProfilePage = () => {
   const { user, updateUser } = useAuth();
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({
-    name: user?.username || '',
+    name: user?.username || localStorage.getItem('user')||'',
     phone: user?.phone || '',
     address: user?.address || '',
     city: user?.city || '',
@@ -21,8 +21,8 @@ const ProfilePage = () => {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem("auth_token");
-        console.log(localStorage.getItem("auth_token"));
-
+        // console.log(localStorage.getItem("auth_token"));
+        
         const response = await apiRequest('/auth/profile', {
           method: 'GET',
          
@@ -31,10 +31,10 @@ const ProfilePage = () => {
             "Authorization": `Bearer ${token}`
           }
         });
-        
+        console.log(response)
         setUser(response);
         setFormData({
-          name: response.username || '',
+          name: response.name || '',
           phone: response.phone || '',
           address: response.address || '',
           city: response.city || '',
@@ -140,7 +140,7 @@ const ProfilePage = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
               <input
-                type="tel"
+                type="text"
                 required
                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 value={formData.phone}

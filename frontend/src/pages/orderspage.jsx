@@ -1,7 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { Package, CheckCircle, Clock, XCircle } from 'lucide-react';
-import { apiRequest } from '../services/api';
-import LoadingSpinner from '../components/common/loadingspinner';
+import React, { useState, useEffect } from "react";
+import {
+  Package,
+  CheckCircle,
+  Clock,
+  XCircle,
+  Truck,
+  CreditCard,
+} from "lucide-react";
+import { apiRequest } from "../services/api";
+import LoadingSpinner from "../components/common/loadingspinner";
 
 const OrdersPage = ({ viewVehicleDetails }) => {
   const [orders, setOrders] = useState([]);
@@ -13,82 +20,152 @@ const OrdersPage = ({ viewVehicleDetails }) => {
 
   const loadOrders = async () => {
     setLoading(true);
-    const savedUser =  JSON.parse(localStorage.getItem('user'));
-    console.log(savedUser)
-    let username=savedUser.username
-    console.log(username)
-    if (!username) throw new Error("User not found");
-    try{
-        const data = await apiRequest(`/bookings?user=${encodeURIComponent(username)}`);
-        
-        setOrders(data.orders || data || []);
+    try {
+      const savedUser = JSON.parse(localStorage.getItem("user"));
+      const username = savedUser?.username;
+      if (!username) throw new Error("User not found");
+
+      const data = await apiRequest(`/orders?user=${encodeURIComponent(username)}`);
+      setOrders(data.orders || data || []);
     } catch (error) {
-      console.error('Failed to load orders:', error);
+      console.error("Failed to load orders:", error);
       setOrders([]);
     }
     setLoading(false);
   };
 
   const getStatusIcon = (status) => {
-    switch (status) {
-      case 'confirmed':
-      case 'completed':
-        return <CheckCircle className="h-5 w-5 text-green-600" />;
-      case 'pending':
-        return <Clock className="h-5 w-5 text-yellow-600" />;
-      case 'cancelled':
-        return <XCircle className="h-5 w-5 text-red-600" />;
+    switch (status?.toLowerCase()) {
+      case "confirmed":
+      case "completed":
+        return <CheckCircle className="h-6 w-6 text-green-600" />;
+      case "pending":
+        return <Clock className="h-6 w-6 text-yellow-600" />;
+      case "cancelled":
+        return <XCircle className="h-6 w-6 text-red-600" />;
       default:
-        return <Package className="h-5 w-5 text-gray-600" />;
+        return <Package className="h-6 w-6 text-gray-600" />;
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case "confirmed":
+      case "completed":
+        return "bg-green-50 text-green-700 border-green-200";
+      case "pending":
+        return "bg-yellow-50 text-yellow-700 border-yellow-200";
+      case "cancelled":
+        return "bg-red-50 text-red-700 border-red-200";
+      default:
+        return "bg-gray-50 text-gray-700 border-gray-200";
     }
   };
 
   if (loading) {
-    return <LoadingSpinner message="Loading orders..." />;
+    return <LoadingSpinner message="Loading your orders..." />;
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <h1 className="text-4xl font-bold mb-8">My Orders</h1>
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <h1 className="text-4xl font-bold mb-10 text-blue-900">My Orders</h1>
 
       {orders.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-lg shadow">
+        <div className="text-center py-12 bg-white rounded-xl shadow-md">
           <Package className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-          <p className="text-xl text-gray-600">No orders yet</p>
+          <p className="text-xl text-gray-600">You haven’t placed any orders yet.</p>
         </div>
       ) : (
         <div className="space-y-6">
           {orders.map((order) => (
-            <div key={order.id} className="bg-white rounded-lg shadow-lg p-6">
-              <div className="flex justify-between items-start mb-4">
+            <div
+              key={order.id}
+              className="bg-white rounded-xl shadow-md p-6 border hover:shadow-lg transition-shadow duration-200"
+            >
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5">
                 <div>
-                  <h3 className="text-xl font-bold mb-1">Order #{order.id}</h3>
-                  <p className="text-gray-600">{new Date(order.created_at).toLocaleDateString()}</p>
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    Order #{order.id}
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    Placed on{" "}
+                    {new Date(order.created_at).toLocaleDateString(undefined, {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </p>
                 </div>
-                <div className="flex items-center space-x-2">
+
+                <div
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-medium ${getStatusColor(
+                    order.status
+                  )}`}
+                >
                   {getStatusIcon(order.status)}
-                  <span className="font-semibold capitalize">{order.status}</span>
+                  <span className="capitalize">{order.status}</span>
                 </div>
               </div>
 
-              <div className="border-t pt-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <p className="text-sm text-gray-600">Vehicle</p>
-                    <p className="font-semibold">{order.vehicle_name || 'Vehicle Details'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Total Amount</p>
-                    <p className="font-semibold text-blue-900">${order.total_amount?.toLocaleString()}</p>
+              {/* Order Info */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border-t pt-4">
+                <div>
+                  <p className="text-sm text-gray-600">Vehicle</p>
+                  <p className="font-semibold text-gray-900">
+                    {order.vehicle_name || "Vehicle Info"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Total Amount</p>
+                  <p className="font-semibold text-blue-900">
+                    ₹{order.total_amount?.toLocaleString() || "N/A"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Payment Mode</p>
+                  <div className="flex items-center gap-2 text-gray-900 font-semibold">
+                    <CreditCard className="h-4 w-4 text-gray-500" />
+                    {order.payment_mode || "Not specified"}
                   </div>
                 </div>
+              </div>
 
+              {/* Delivery Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                <div>
+                  <p className="text-sm text-gray-600">Delivery Date</p>
+                  <div className="flex items-center gap-2 text-gray-900 font-semibold">
+                    <Truck className="h-4 w-4 text-gray-500" />
+                    {order.delivery_date
+                      ? new Date(order.delivery_date).toLocaleDateString()
+                      : "Awaiting confirmation"}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Booking Reference</p>
+                  <p className="font-semibold text-gray-900">
+                    #{order.booking_ref || "—"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="mt-6 flex flex-wrap gap-3">
                 {order.vehicle_id && (
                   <button
                     onClick={() => viewVehicleDetails(order.vehicle_id)}
-                    className="text-blue-900 hover:underline"
+                    className="px-4 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition"
                   >
-                    View Vehicle Details
+                    View Vehicle
+                  </button>
+                )}
+                <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition">
+                  Download Invoice
+                </button>
+                {order.status !== "cancelled" && (
+                  <button className="px-4 py-2 border border-red-500 text-red-600 rounded-lg hover:bg-red-50 transition">
+                    Cancel Order
                   </button>
                 )}
               </div>

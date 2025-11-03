@@ -24,7 +24,7 @@ const VehicleDetailsPage = ({ vehicleId, navigateTo }) => {
   const mapVehicleData = (v) => ({
     id: v.VehicleId,
     vin: v.Vin,
-    brand: v.Model?.split(' ')[0] || 'Unknown',
+    brand: v.brand|| 'Unknown',
     model: v.Model,
     price: parseFloat(v.BasePrice) || 0,
     cost: parseFloat(v.Cost) || 0,
@@ -33,13 +33,14 @@ const VehicleDetailsPage = ({ vehicleId, navigateTo }) => {
     condition: v.VehicleCondition || (v.Type === 'new' ? 'new' : 'used'),
     fuelType: v.FuelType || 'N/A',
     transmission: v.Transmission || 'N/A',
-    drivetrain: v.drivetrain || 'N/A',
+    drivetrain: v.Drivetrain || 'N/A',
     cylinders: v.cylinders || 'N/A',
-    mileage: v.Mileage || 0,
+    mileage: v.Mileage || 10,
     color: v.Color || 'N/A',
     warrantyPeriod: v.WarrantyPeriod || 0,
     stockStatus: v.StockStatus || 'Unknown',
-    quantity: v.quantity || 0,
+    booking_status:'',
+    quantity: v.Quantity || 0,
     location: v.Location || 'N/A',
     manufacturer: v.ManufacturerName || 'N/A',
     imageUrl: v.VehicleImageURL || '',
@@ -95,15 +96,16 @@ const VehicleDetailsPage = ({ vehicleId, navigateTo }) => {
         await apiRequest('/bookings', {
           method: 'POST',
           body: JSON.stringify({
-            vehicle_id: vehicle.id,
+            vehicle_id: vehicleId,
             quantity: 1,
             total_amount: vehicle.price,
+            booking_status:'confirmed',
           }),
         });
-        alert('Order placed successfully!');
-        navigateTo('orders');
+        alert('booking placed successfully!');
+        navigateTo('booking');
       } catch (error) {
-        alert('Failed to place order: ' + error.message);
+        alert('Failed to book the vehicle: ' + error.message);
       }
       setPurchasing(false);
     }
@@ -225,7 +227,7 @@ const VehicleDetailsPage = ({ vehicleId, navigateTo }) => {
               {vehicle.mileage > 0 && (
                 <div className="flex items-center space-x-3 text-gray-700">
                   <Gauge className="h-5 w-5 text-blue-900" />
-                  <span>Mileage: {vehicle.mileage} kmpl</span>
+                  <span>Mileage: {vehicle.mileage?vehicle.mileage:10} kmpl</span>
                 </div>
               )}
             </div>

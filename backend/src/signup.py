@@ -17,6 +17,7 @@ def signup_user():
     password = userdetails.get("password")
     email = userdetails.get("email")
     role = userdetails.get("role", "user")
+    phone=userdetails.get("phone")
    
     if not user or not password or not email:
         return jsonify({'message': "username, password, and email are required"}), 400
@@ -32,7 +33,7 @@ def signup_user():
     existing_email = cur.fetchone()
     if existing_email:
         return jsonify({'message': "email already registered"}), 409
-    hashed_password = generate_password_hash(password)
+    # hashed_password = generate_password_hash(password)
     # Get the maximum id
     cur.execute("SELECT MAX(id) FROM users")
     max_id = cur.fetchone()[0]
@@ -46,13 +47,14 @@ def signup_user():
     cur.execute("insert into people(pid,firstname,lastname,email,userid) values(%s,%s,%s,%s,%s)",(people_id,firstname,lastname,email,new_id))
 
     db.commit()
-    
+    cur.execute("insert into phone_records values(%s,%s)",(people_id,phone))
+    db.commit()
     if role=="user":
         cur.execute("SELECT count(*) FROM customer")
         max_id = cur.fetchone()[0]
-        new_id = 1 if max_id is None else max_id + 1
-        newid=f"CUS{new_id}"
-        cur.execute(" insert into customer values (%s,%s,%s,%s)",(newid,people_id,"new",0))
+        new_ids = 1 if max_id is None else max_id + 1
+        newids=f"CUS{new_ids}"
+        cur.execute(" insert into customer values (%s,%s,%s,%s)",(newids,people_id,"new",0))
         db.commit()
                 
     db.commit()

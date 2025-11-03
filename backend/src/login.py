@@ -41,7 +41,8 @@ def login_user():
     # Create JWT tokens with additional claims
     additional_claims = {
         "role": user.get("role"),
-        "email": user.get("email")
+        "email": user.get("email"),
+        
     }
     
     access_token = create_access_token(
@@ -72,21 +73,25 @@ def profile():
         
         current_user_id = get_jwt_identity()
         cur = db.cursor(dictionary=True)
-        if current_user_id:
-            
-            
-            
-            print(current_user_id)
-            cur.execute("select p.*, r.phone1 as phone   from people p left join phone_records r on p.pid=r.id  where userid=%s",(current_user_id,))
-        else:
-            print("the userid is empty")
-        user=cur.fetchone()
-        print(user)
-        cur.close()
-        if user:
-            return jsonify(user),200
-        else:
-            return jsonify({'message':"user profile not found"}),401
+        try:
+            if current_user_id:
+                
+                
+                
+                print(current_user_id)
+                cur.execute("select p.*, r.phone1 as phone  from people p left join phone_records r on p.pid=r.id  where userid=%s",(current_user_id,))
+            else:
+                print("the userid is empty")
+            user=cur.fetchone()
+            print(user)
+            cur.close()
+            if user:
+                return jsonify(user),200
+            else:
+                return jsonify({'message':"user profile not found"}),401
+        except Exception as e:
+            print(f"Debug error: {str(e)}")
+            return jsonify({"error": str(e)}), 500
         
     elif request.method == 'PUT':
 
@@ -114,14 +119,27 @@ def profile():
         if state:
             update_query += "state=%s, "
             update_values.append(state)
-        update_query = update_query.rstrip(", ") + " WHERE id=%s"
+        update_query = update_query.rstrip(", ") + " WHERE userid=%s"
         update_values.append(current_user_id)
         cur=db.cursor()
         cur.execute(update_query, tuple(update_values))
         db.commit()
         cur.close()
+        cur=db.cursor(dictionary=True)
+        try:
+            cur.execute("select pid from people where userid=%s",(current_user_id,))
 
-        return jsonify({'message': 'Profile updated successfully'}), 200
+            people_id=cur.fetchone()
+            people_id=people_id.get("pid")
+
+
+            cur.execute("insert into phone_records values(%s,%s)",(people_id,phone))
+            cur.close()
+            return jsonify({'message': 'Profile updated successfully'}), 200
+        except Exception as e:
+            print(f"Debug error: {str(e)}")
+            return jsonify({"error": str(e)}), 500
+        
 
 # simple in-memory blocklist (use persistent store in production)
 token_blocklist = set()

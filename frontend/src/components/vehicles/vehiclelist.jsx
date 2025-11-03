@@ -61,7 +61,7 @@ const VehicleList = () => {
                   e.target.style.display = 'none';
                 }}
               />
-              <h3 className="text-lg font-semibold">{vehicle.Model}</h3>
+              {/* <h3 className="text-lg font-semibold">{vehicle.brand}</h3> */}
               <p>Price: ${vehicle.BasePrice?.toLocaleString()}</p>
               <p>Type: {vehicle.Type}</p>
               <p>Fuel: {vehicle.FuelType}</p>
